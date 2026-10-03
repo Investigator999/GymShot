@@ -237,3 +237,6 @@ dialog.intro { padding: 0; overflow: hidden; width: min(440px, calc(100vw - 24px
 .dots { display: flex; gap: 6px; }
 .dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: .2s; }
 .dots span.on { background: var(--accent); width: 18px; border-radius: 4px; }
+
+.shot-preview.loading span { animation: spin 1s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
