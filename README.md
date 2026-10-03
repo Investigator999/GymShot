@@ -20,6 +20,12 @@ GymShot is an installable web app (PWA). On Android it shows up in the **Share**
 2. In the repo: **Settings → Pages → Source: GitHub Actions**.
 3. The workflow publishes to `https://<your-username>.github.io/gymshot/`.
 
+## Deploy (Cloudflare Pages)
+1. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git** → pick this repo.
+2. Project name `gymshot`, framework preset **None**, build command empty, output directory `/`.
+3. Live at `https://gymshot.pages.dev`; every push to `main` redeploys. `_headers` keeps the service worker uncached.
+4. Optional: **Custom domains** tab to attach a domain bought through Cloudflare.
+
 ## Install on your phone
 - **Android (Chrome):** open the site → ⋮ → **Install app**. Then in Instagram tap **Share → GymShot**.
 - **iPhone (Safari):** Share → **Add to Home Screen**. iOS doesn't allow web apps in the share sheet, so use **Copy link** in Instagram, then open GymShot, paste it into the link box and tap **Add**.
