@@ -1,7 +1,23 @@
 'use strict';
 
 const STORE_KEY = 'gymshot.items.v1';
-const TAGS = ['Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Glutes', 'Core', 'Full body', 'Cardio', 'Mobility'];
+const COLS_KEY = 'gymshot.collections.v1';
+const VIEW_COL_KEY = 'gymshot.view.col';
+const GYM_TAGS = ['Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Glutes', 'Core', 'Full body', 'Cardio', 'Mobility'];
+// Groups ("collections") let one app hold gym moves, recipes, funny videos and anything else.
+const DEFAULT_COLS = [
+  { id: 'gym', name: 'Gym', emoji: '💪', tags: GYM_TAGS },
+  { id: 'cooking', name: 'Cooking', emoji: '🍳', tags: ['Breakfast', 'Lunch', 'Dinner', 'Dessert', 'Healthy', 'Quick'] },
+  { id: 'funny', name: 'Funny', emoji: '😂', tags: ['Pets', 'Kids', 'Pranks', 'Memes'] },
+];
+const COL_TEMPLATES = [
+  ...DEFAULT_COLS,
+  { id: 'travel', name: 'Travel', emoji: '✈️', tags: ['Places', 'Hotels', 'Food spots', 'Tips'] },
+  { id: 'beauty', name: 'Beauty', emoji: '💄', tags: ['Makeup', 'Skincare', 'Hair', 'Nails'] },
+  { id: 'home', name: 'Home & DIY', emoji: '🏠', tags: ['Decor', 'Cleaning', 'Organizing', 'Repairs'] },
+  { id: 'learning', name: 'Learning', emoji: '📚', tags: ['Language', 'Tech', 'Money', 'Life hacks'] },
+  { id: 'kids', name: 'Kids', emoji: '🧸', tags: ['Activities', 'Crafts', 'Parenting', 'Food'] },
+];
 
 const PLATFORMS = [
   { id: 'instagram', name: 'Instagram', icon: '📸', test: /(^|\.)instagram\.com$|(^|\.)instagr\.am$/ },
@@ -15,7 +31,8 @@ const $ = (sel) => document.querySelector(sel);
 
 // ---------- state ----------
 let items = load();
-const view = { status: 'todo', tag: null, q: '' };
+let collections = loadCols();
+const view = { status: 'todo', tag: null, q: '', col: loadViewCol() };
 let editingId = null;
 let draftShot; // undefined = unchanged, null = remove, Blob = new screenshot
 const shots = new Map(); // item id -> { blob, url }
@@ -28,6 +45,45 @@ function load() {
     return [];
   }
 }
+function cloneCol(c) {
+  return { id: c.id, name: c.name, emoji: c.emoji, tags: [...c.tags] };
+}
+function loadCols() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(COLS_KEY) || 'null');
+    const ok = Array.isArray(raw) ? raw.filter((c) => c && typeof c.id === 'string' && typeof c.name === 'string') : [];
+    if (ok.length) {
+      return ok.map((c) => ({ id: c.id, name: c.name, emoji: typeof c.emoji === 'string' ? c.emoji : '📁',
+        tags: Array.isArray(c.tags) ? c.tags.filter((t) => typeof t === 'string' && t.trim()) : [] }));
+    }
+  } catch { /* fall through to defaults */ }
+  return DEFAULT_COLS.map(cloneCol);
+}
+function persistCols() {
+  try { localStorage.setItem(COLS_KEY, JSON.stringify(collections)); } catch { /* ignore */ }
+}
+function loadViewCol() {
+  try { return localStorage.getItem(VIEW_COL_KEY) || 'gym'; } catch { return 'gym'; }
+}
+function setViewCol(id) {
+  view.col = id;
+  view.tag = null;
+  try { localStorage.setItem(VIEW_COL_KEY, id); } catch { /* ignore */ }
+}
+function colById(id) {
+  return collections.find((c) => c.id === id) || collections[0];
+}
+// Items saved before groups existed (or whose group was removed) belong to the first group.
+function itemCol(it) {
+  return it.col && collections.some((c) => c.id === it.col) ? it.col : collections[0].id;
+}
+function newColId(name) {
+  const base = String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'group';
+  let id = base, n = 2;
+  while (collections.some((c) => c.id === id)) id = `${base}-${n++}`;
+  return id;
+}
+
 function persist() {
   try {
     localStorage.setItem(STORE_KEY, JSON.stringify(items));
@@ -187,6 +243,7 @@ function filtered() {
   const q = view.q.toLowerCase();
   return items
     .filter((it) => {
+      if (itemCol(it) !== view.col) return false;
       if (view.status === 'todo' && it.tried) return false;
       if (view.status === 'tried' && !it.tried) return false;
       if (view.status === 'fav' && !it.fav) return false;
@@ -197,10 +254,26 @@ function filtered() {
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
+function renderCols() {
+  const counts = {};
+  items.forEach((it) => { const c = itemCol(it); counts[c] = (counts[c] || 0) + 1; });
+  $('#colBar').replaceChildren(
+    ...collections.map((c) => {
+      const b = el('button', { type: 'button', class: 'colpill' + (c.id === view.col ? ' on' : ''), 'aria-pressed': c.id === view.col ? 'true' : 'false' },
+        el('span', { class: 'emo' }, c.emoji), ' ' + c.name, counts[c.id] ? el('span', { class: 'n' }, String(counts[c.id])) : null);
+      b.onclick = () => { setViewCol(c.id); render(); };
+      return b;
+    }),
+    el('button', { type: 'button', class: 'colpill add', onclick: () => openCols(true) }, '+ New group'));
+}
+
 function renderChips() {
   const box = $('#tagChips');
+  const tags = colById(view.col).tags;
+  if (view.tag && !tags.includes(view.tag)) view.tag = null;
+  box.hidden = tags.length === 0;
   box.replaceChildren(
-    ...['All', ...TAGS].map((t) => {
+    ...['All', ...tags].map((t) => {
       const b = document.createElement('button');
       b.className = 'chip' + ((t === 'All' ? !view.tag : view.tag === t) ? ' on' : '');
       b.textContent = t;
@@ -252,15 +325,18 @@ function card(it) {
 function render() {
   document.querySelectorAll('#statusSeg button').forEach((b) =>
     b.classList.toggle('active', b.dataset.status === view.status));
+  if (!collections.some((c) => c.id === view.col)) setViewCol(collections[0].id);
+  renderCols();
   renderChips();
   const list = filtered();
   $('#list').replaceChildren(...list.map(card));
   $('#empty').hidden = items.length > 0;
-  const total = items.length;
-  const todo = items.filter((i) => !i.tried).length;
-  $('#count').textContent = total
-    ? `${list.length} shown · ${todo} to try · ${total - todo} tried`
-    : '';
+  const col = colById(view.col);
+  const inCol = items.filter((i) => itemCol(i) === col.id);
+  const todo = inCol.filter((i) => !i.tried).length;
+  $('#count').textContent = !items.length ? ''
+    : inCol.length ? `${list.length} shown · ${todo} to try · ${inCol.length - todo} tried`
+    : `Nothing in ${col.name} yet. Paste a link above to save your first one.`;
 }
 
 // ---------- mutations ----------
@@ -307,6 +383,7 @@ function highlight(id) {
 
 function revealItem(it) {
   // Make sure the item is visible under the current filters.
+  if (itemCol(it) !== view.col) setViewCol(itemCol(it));
   if ((view.status === 'todo' && it.tried) || (view.status === 'tried' && !it.tried) || (view.status === 'fav' && !it.fav)) {
     view.status = 'all';
   }
@@ -396,17 +473,51 @@ function openEditor(it, prefill = {}) {
       if (prev.title && titleInput.value.trim() === defaultTitle(data.url)) titleInput.value = prev.title;
     });
   }
-  const selected = new Set(data.tags || []);
-  $('#editTags').replaceChildren(
-    ...TAGS.map((t) => {
-      const b = el('button', { type: 'button', class: 'chip' + (selected.has(t) ? ' on' : '') }, t);
-      b.onclick = () => b.classList.toggle('on');
-      return b;
-    })
-  );
+  editorCol = it ? itemCol(it) : view.col;
+  editorTags = new Set(data.tags || []);
+  renderEditorGroups();
   $('#editDlg').showModal();
   if (!it) setTimeout(() => f.elements.title.select(), 50);
 }
+
+const NOTE_HINTS = {
+  gym: 'Sets, reps, cues, which machine…',
+  cooking: 'Ingredients, oven temperature, swaps…',
+  funny: 'Who to send it to…',
+};
+let editorCol = null;
+let editorTags = new Set();
+
+function renderEditorGroups() {
+  $('#editCols').replaceChildren(...collections.map((c) => {
+    const b = el('button', { type: 'button', class: 'chip' + (c.id === editorCol ? ' on' : '') }, el('span', { class: 'emo' }, c.emoji), ' ' + c.name);
+    b.onclick = () => { editorCol = c.id; renderEditorGroups(); };
+    return b;
+  }));
+  const col = colById(editorCol);
+  $('#tagLegend').textContent = col.id === 'gym' ? 'Muscle group' : 'Tags';
+  $('#editTitle').textContent = editingId ? 'Edit' : `Save to ${col.name}`;
+  $('#editForm').elements.notes.placeholder = NOTE_HINTS[col.id] || 'Notes, tips, anything to remember…';
+  $('#editTags').replaceChildren(...col.tags.map((t) => {
+    const b = el('button', { type: 'button', class: 'chip' + (editorTags.has(t) ? ' on' : '') }, t);
+    b.onclick = () => { editorTags.has(t) ? editorTags.delete(t) : editorTags.add(t); b.classList.toggle('on'); };
+    return b;
+  }));
+  $('#newTag').value = '';
+}
+
+function addEditorTag() {
+  const name = $('#newTag').value.trim().slice(0, 24);
+  if (!name) return;
+  const col = colById(editorCol);
+  const existing = col.tags.find((t) => t.toLowerCase() === name.toLowerCase());
+  if (!existing) { col.tags.push(name); persistCols(); }
+  editorTags.add(existing || name);
+  renderEditorGroups();
+}
+$('#newTagBtn').addEventListener('click', addEditorTag);
+// Enter would otherwise submit the dialog form through its first button (Cancel).
+$('#newTag').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addEditorTag(); } });
 
 function showShotPreview(url) {
   const box = $('#shotPreview');
@@ -462,7 +573,9 @@ $('#editForm').addEventListener('submit', (e) => {
     url,
     title: f.elements.title.value.trim() || defaultTitle(url),
     notes: f.elements.notes.value.trim(),
-    tags: [...document.querySelectorAll('#editTags .chip.on')].map((b) => b.textContent),
+    // Keep only tags that belong to the chosen group.
+    tags: colById(editorCol).tags.filter((t) => editorTags.has(t)),
+    col: colById(editorCol).id,
     tried: f.elements.tried.checked,
     fav: f.elements.fav.checked,
   };
@@ -499,7 +612,7 @@ $('#editForm').addEventListener('submit', (e) => {
     items.push(it);
     persist();
     revealItem(it);
-    toast('Saved 💪');
+    toast(`Saved to ${colById(it.col).name} ${colById(it.col).emoji}`);
   }
 });
 
@@ -565,7 +678,7 @@ $('#search').addEventListener('input', (e) => {
 
 $('#randomBtn').addEventListener('click', () => {
   let pool = filtered().filter((i) => !i.tried);
-  if (!pool.length) pool = items.filter((i) => !i.tried && (!view.tag || (i.tags || []).includes(view.tag)));
+  if (!pool.length) pool = items.filter((i) => !i.tried && itemCol(i) === view.col && (!view.tag || (i.tags || []).includes(view.tag)));
   if (!pool.length) {
     toast(items.length ? 'Nothing left to try here — nice work!' : 'Save some moves first');
     return;
@@ -657,7 +770,7 @@ $('#exportBtn').addEventListener('click', async () => {
     const s = shots.get(it.id);
     return s ? { ...it, shot: await blobToDataUrl(s.blob) } : it;
   }));
-  const blob = new Blob([JSON.stringify({ app: 'gymshot', version: 2, exportedAt: new Date().toISOString(), items: withShots }, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify({ app: 'gymshot', version: 3, exportedAt: new Date().toISOString(), collections, items: withShots }, null, 2)], { type: 'application/json' });
   const a = el('a', { href: URL.createObjectURL(blob), download: `gymshot-backup-${new Date().toISOString().slice(0, 10)}.json` });
   document.body.append(a);
   a.click();
@@ -675,6 +788,16 @@ $('#importFile').addEventListener('change', async (e) => {
     const data = JSON.parse(await file.text());
     const incoming = Array.isArray(data) ? data : data.items;
     if (!Array.isArray(incoming)) throw new Error('bad file');
+    if (Array.isArray(data.collections)) {
+      for (const c of data.collections) {
+        if (!c || typeof c.id !== 'string' || typeof c.name !== 'string') continue;
+        const mine = collections.find((x) => x.id === c.id);
+        const tags = Array.isArray(c.tags) ? c.tags.filter((t) => typeof t === 'string') : [];
+        if (mine) tags.forEach((t) => { if (!mine.tags.includes(t)) mine.tags.push(t); });
+        else collections.push({ id: c.id, name: c.name, emoji: typeof c.emoji === 'string' ? c.emoji : '📁', tags });
+      }
+      persistCols();
+    }
     let added = 0;
     for (const it of incoming) {
       if (!it || typeof it.url !== 'string' || findDuplicate(it.url)) continue;
@@ -688,6 +811,7 @@ $('#importFile').addEventListener('change', async (e) => {
         title: String(it.title || defaultTitle(it.url)),
         notes: String(it.notes || ''),
         tags: Array.isArray(it.tags) ? it.tags.filter((t) => typeof t === 'string') : [],
+        col: typeof it.col === 'string' ? it.col : undefined,
         tried: !!it.tried,
         fav: !!it.fav,
         createdAt: Number(it.createdAt) || Date.now(),
@@ -704,6 +828,70 @@ $('#importFile').addEventListener('change', async (e) => {
     toast('Could not read that backup file');
   }
 });
+
+// ---------- manage groups ----------
+let pendingDelete = null;
+
+function renderColsDlg() {
+  const counts = {};
+  items.forEach((it) => { const c = itemCol(it); counts[c] = (counts[c] || 0) + 1; });
+  $('#colsList').replaceChildren(...collections.map((c, idx) => {
+    const emoji = el('input', { class: 'emoji-in', id: 'col-emoji-' + c.id, value: c.emoji, maxlength: '4', 'aria-label': 'Icon' });
+    emoji.oninput = () => { c.emoji = emoji.value.trim() || '📁'; persistCols(); render(); };
+    const name = el('input', { class: 'name-in', id: 'col-name-' + c.id, value: c.name, maxlength: '24', 'aria-label': 'Group name' });
+    name.oninput = () => { if (name.value.trim()) { c.name = name.value.trim(); persistCols(); render(); } };
+    const tags = el('input', { class: 'tags-in', id: 'col-tags-' + c.id, value: c.tags.join(', '), placeholder: 'Tags, separated by commas', 'aria-label': 'Tags' });
+    tags.onchange = () => {
+      c.tags = [...new Set(tags.value.split(',').map((t) => t.trim().slice(0, 24)).filter(Boolean))];
+      persistCols(); render();
+    };
+    const n = counts[c.id] || 0;
+    const del = el('button', { type: 'button', class: 'ghost danger small-btn', disabled: collections.length === 1 },
+      pendingDelete === c.id ? (n ? `Delete? ${n} move to ${collections.find((x) => x.id !== c.id)?.name}` : 'Tap again to delete') : 'Delete');
+    del.onclick = () => {
+      if (pendingDelete !== c.id) { pendingDelete = c.id; renderColsDlg(); return; }
+      const target = collections.find((x) => x.id !== c.id);
+      items.forEach((it) => { if (itemCol(it) === c.id) it.col = target.id; });
+      collections.splice(idx, 1);
+      pendingDelete = null;
+      persist(); persistCols();
+      if (view.col === c.id) setViewCol(target.id);
+      renderColsDlg(); render();
+      toast(`Deleted ${c.name}`);
+    };
+    return el('div', { class: 'colrow' },
+      el('div', { class: 'colrow-top' }, emoji, name, del),
+      tags,
+      el('div', { class: 'muted small' }, n === 1 ? '1 saved video' : `${n} saved videos`));
+  }));
+  const have = new Set(collections.map((c) => c.name.toLowerCase()));
+  $('#colTemplates').replaceChildren(
+    ...COL_TEMPLATES.filter((t) => !have.has(t.name.toLowerCase())).map((t) => {
+      const b = el('button', { type: 'button', class: 'chip' }, el('span', { class: 'emo' }, t.emoji), ' ' + t.name);
+      b.onclick = () => addCol({ ...cloneCol(t), id: newColId(t.name) });
+      return b;
+    }),
+    el('button', { type: 'button', class: 'chip', onclick: () => addCol({ id: newColId('group'), name: 'New group', emoji: '📁', tags: [] }, true) }, '+ Your own'));
+}
+
+function addCol(c, focusName) {
+  collections.push(c);
+  persistCols();
+  setViewCol(c.id);
+  renderColsDlg(); render();
+  toast(`Added ${c.name} ${c.emoji}`);
+  if (focusName) setTimeout(() => { const n = document.getElementById('col-name-' + c.id); if (n) { n.focus(); n.select(); } }, 50);
+}
+
+function openCols(scrollToAdd) {
+  if ($('#menuDlg').open) $('#menuDlg').close();
+  pendingDelete = null;
+  renderColsDlg();
+  $('#colsDlg').showModal();
+  if (scrollToAdd) setTimeout(() => $('#colTemplates').scrollIntoView({ block: 'nearest' }), 50);
+}
+$('#colsBtn').addEventListener('click', () => openCols(false));
+$('#colsDlg').addEventListener('close', () => { pendingDelete = null; render(); });
 
 // Install prompt (Android / desktop Chrome)
 let installEvt = null;

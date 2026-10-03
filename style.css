@@ -240,3 +240,23 @@ dialog.intro { padding: 0; overflow: hidden; width: min(440px, calc(100vw - 24px
 
 .shot-preview.loading span { animation: spin 1s linear infinite; display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Groups */
+.colbar { display: flex; gap: 8px; overflow-x: auto; margin-top: 14px; padding-bottom: 2px; scrollbar-width: none; }
+.colbar::-webkit-scrollbar { display: none; }
+.colpill { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; border-radius: 14px;
+  background: var(--surface); border: 1px solid var(--border); color: var(--text); font-weight: 700; font-size: 15px; }
+.colpill.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.colpill .n { font-size: 12px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+.colpill.on .n { background: color-mix(in srgb, var(--accent-ink) 18%, transparent); color: var(--accent-ink); }
+.colpill.add { color: var(--muted); border-style: dashed; }
+.addtag { display: flex; gap: 8px; margin-top: 10px; }
+.addtag input { flex: 1; min-width: 0; }
+.colslist { display: grid; gap: 10px; margin-bottom: 8px; }
+.colrow { display: grid; gap: 8px; padding: 12px; border-radius: 14px; background: var(--surface-2); }
+.colrow-top { display: flex; gap: 8px; align-items: center; }
+.colrow input { padding: 9px 10px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); width: 100%; min-width: 0; }
+.colrow .emoji-in { width: 56px; flex: none; text-align: center; font-size: 20px; padding: 6px; }
+.colrow .name-in { flex: 1; font-weight: 700; }
+.small-btn { padding: 8px 10px; font-size: 13px; flex: none; white-space: nowrap; }
+.muted.small { font-size: 12px; }

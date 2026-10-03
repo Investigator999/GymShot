@@ -33,6 +33,8 @@
       </form>
     </section>
 
+    <nav class="colbar" id="colBar" aria-label="Groups"></nav>
+
     <section class="filters">
       <input id="search" type="search" placeholder="Search title, notes…" aria-label="Search">
       <div class="seg" id="statusSeg" role="tablist">
@@ -81,8 +83,16 @@
         <input type="file" id="shotFile" accept="image/*" hidden>
       </fieldset>
       <fieldset>
-        <legend>Muscle group</legend>
+        <legend>Group</legend>
+        <div class="chips selectable" id="editCols"></div>
+      </fieldset>
+      <fieldset>
+        <legend id="tagLegend">Muscle group</legend>
         <div class="chips selectable" id="editTags"></div>
+        <div class="addtag">
+          <input id="newTag" type="text" maxlength="24" placeholder="New tag" aria-label="New tag">
+          <button type="button" id="newTagBtn" class="ghost">Add tag</button>
+        </div>
       </fieldset>
       <label>Notes
         <textarea name="notes" rows="3" placeholder="Sets, reps, cues, which machine…"></textarea>
@@ -103,12 +113,25 @@
     <form method="dialog">
       <h2>Menu</h2>
       <button type="button" id="installBtn" class="menu-item" hidden>📲 Install app</button>
+      <button type="button" id="colsBtn" class="menu-item">🗂️ Manage groups</button>
       <button type="button" id="introBtn" class="menu-item">👋 Quick intro</button>
       <button type="button" id="howBtn2" class="menu-item">❓ How to share to GymShot</button>
       <button type="button" id="exportBtn" class="menu-item">⬇️ Export backup (.json)</button>
       <button type="button" id="importBtn" class="menu-item">⬆️ Import backup</button>
       <input type="file" id="importFile" accept="application/json,.json" hidden>
       <div class="dlg-actions"><button value="close" class="ghost">Close</button></div>
+    </form>
+  </dialog>
+
+  <!-- Manage groups -->
+  <dialog id="colsDlg">
+    <form method="dialog">
+      <h2>Your groups</h2>
+      <p class="muted">Keep gym moves, recipes, funny videos and more apart. Each group has its own tags.</p>
+      <div id="colsList" class="colslist"></div>
+      <h3>Add a group</h3>
+      <div class="chips selectable" id="colTemplates"></div>
+      <div class="dlg-actions"><button value="close" class="primary">Done</button></div>
     </form>
   </dialog>
 
