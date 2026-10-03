@@ -317,6 +317,56 @@ function revealItem(it) {
   highlight(it.id);
 }
 
+// ---------- automatic previews (TikTok / YouTube) ----------
+// Both publish a public oEmbed endpoint (CORS-enabled) with the video's title and cover image,
+// so those links get a thumbnail without a screenshot. Instagram requires a paid token, so it can't.
+const OEMBED = {
+  tiktok: (u) => `https://www.tiktok.com/oembed?url=${encodeURIComponent(u)}`,
+  youtube: (u) => `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(u)}`,
+};
+
+function canPreview(url) {
+  const p = platformOf(url);
+  return !!(p && OEMBED[p.id]);
+}
+
+// Captions are often long and full of hashtags; keep a short, readable title.
+function cleanCaption(text) {
+  const t = String(text || '').replace(/#[\p{L}\p{N}_]+/gu, '').replace(/\s+/g, ' ').trim();
+  return t.length > 80 ? t.slice(0, 77).trimEnd() + '…' : t;
+}
+
+function fetchWithTimeout(url, opts = {}, ms = 15000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(timer));
+}
+
+async function fetchPreview(url) {
+  const p = platformOf(url);
+  if (!p || !OEMBED[p.id]) return null;
+  let data = {};
+  try {
+    const res = await fetchWithTimeout(OEMBED[p.id](url));
+    if (res.ok) data = await res.json();
+  } catch { /* fall through: YouTube can still get a thumbnail from its id */ }
+  const yt = p.id === 'youtube' ? youtubeId(url) : null;
+  const thumb = data.thumbnail_url || (yt ? `https://i.ytimg.com/vi/${yt}/hqdefault.jpg` : null);
+  let image = null;
+  if (thumb) {
+    try {
+      // TikTok's CDN rejects hotlinked requests that carry a Referer.
+      const r = await fetchWithTimeout(thumb, { referrerPolicy: 'no-referrer' });
+      if (r.ok) image = await compressImage(await r.blob());
+    } catch { /* keep the title even if the image fails */ }
+  }
+  const title = cleanCaption(data.title) || (data.author_name ? `@${data.author_name} on ${p.name}` : '');
+  return image || title ? { title, image } : null;
+}
+
+// The preview for the move currently open in the editor (it keeps going if Save is tapped early).
+let pendingPreview = null;
+
 // ---------- editor ----------
 function openEditor(it, prefill = {}) {
   editingId = it ? it.id : null;
@@ -330,6 +380,22 @@ function openEditor(it, prefill = {}) {
   f.elements.fav.checked = !!data.fav;
   draftShot = undefined;
   showShotPreview(it ? shots.get(it.id)?.url : null);
+  pendingPreview = null;
+  if (!it && canPreview(data.url)) {
+    const req = { url: data.url, promise: fetchPreview(data.url) };
+    pendingPreview = req;
+    $('#shotPreview').classList.add('loading');
+    $('#shotPreview').replaceChildren(el('span', {}, '⏳'));
+    req.promise.then((prev) => {
+      if (pendingPreview !== req) return; // editor moved on; the save handler takes it from here
+      $('#shotPreview').classList.remove('loading');
+      if (draftShot === undefined && !prev?.image) showShotPreview(null);
+      if (!prev) return;
+      if (prev.image && draftShot === undefined) useShotFile(prev.image);
+      const titleInput = f.elements.title;
+      if (prev.title && titleInput.value.trim() === defaultTitle(data.url)) titleInput.value = prev.title;
+    });
+  }
   const selected = new Set(data.tags || []);
   $('#editTags').replaceChildren(
     ...TAGS.map((t) => {
@@ -383,6 +449,10 @@ $('#editDlg').addEventListener('paste', (e) => {
   }
 });
 
+$('#editDlg').addEventListener('close', () => {
+  $('#shotPreview').classList.remove('loading');
+});
+
 $('#editForm').addEventListener('submit', (e) => {
   if (!e.submitter || e.submitter.value !== 'save') return;
   const f = e.target;
@@ -412,6 +482,20 @@ $('#editForm').addEventListener('submit', (e) => {
     const it = { id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()), createdAt: Date.now(), ...fields };
     if (it.tried) it.triedAt = Date.now();
     if (draftShot) setShot(it.id, draftShot);
+    else if (draftShot === undefined && pendingPreview && pendingPreview.url === url) {
+      // Saved before the preview arrived: attach it when it lands.
+      const genericTitle = it.title === defaultTitle(url);
+      pendingPreview.promise.then((prev) => {
+        if (!prev || !items.includes(it)) return;
+        if (prev.image && !shots.has(it.id)) setShot(it.id, prev.image);
+        if (genericTitle && prev.title && it.title === defaultTitle(url)) it.title = prev.title;
+        it.previewTried = true;
+        persist();
+        render();
+      });
+    }
+    if (pendingPreview) it.previewTried = true;
+    pendingPreview = null;
     items.push(it);
     persist();
     revealItem(it);
@@ -656,7 +740,23 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 render();
 const sharedIn = location.search.length > 1;
 handleIncomingShare();
-loadShots().then(render);
+loadShots().then(() => {
+  render();
+  backfillPreviews();
+});
+
+// Fetch thumbnails for TikTok / YouTube moves saved without a picture (once per move).
+async function backfillPreviews() {
+  const todo = items.filter((it) => canPreview(it.url) && !shots.has(it.id) && !it.previewTried).slice(0, 20);
+  for (const it of todo) {
+    const prev = await fetchPreview(it.url);
+    it.previewTried = true;
+    if (prev?.image && !shots.has(it.id)) setShot(it.id, prev.image);
+    if (prev?.title && it.title === defaultTitle(it.url)) it.title = prev.title;
+    persist();
+    render();
+  }
+}
 
 // Show the intro once on first launch (but never on top of an incoming share).
 let introSeen = false;
