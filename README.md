@@ -7,11 +7,12 @@ GymShot is an installable web app (PWA). On Android it shows up in the **Share**
 ## Features
 - **Share straight from Instagram / TikTok / YouTube** (Android, via the Web Share Target API)
 - Paste-a-link quick add (works everywhere, including iPhone)
+- Attach a screenshot of the reel so you can spot it at a glance (stored on-device, compressed)
 - Tag by muscle group (Chest, Back, Legs, …), add notes (sets, reps, cues)
 - Filter: **To try / Tried / Favorites**, plus search
 - 🎲 Random pick of something you haven't tried yet — handy at the gym
 - Duplicate detection (the same reel shared twice is recognised; tracking params are ignored)
-- Works offline; export / import a JSON backup
+- Works offline; export / import a JSON backup (includes screenshots)
 
 ## Deploy (GitHub Pages)
 1. Merge to `main`.

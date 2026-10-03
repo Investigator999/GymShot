@@ -67,6 +67,18 @@
         <input name="title" type="text" placeholder="e.g. Cable lateral raise variation">
       </label>
       <fieldset>
+        <legend>Screenshot <span class="muted">(helps you spot it later)</span></legend>
+        <div class="shot-field">
+          <button type="button" id="shotPreview" class="shot-preview empty-shot" aria-label="Choose screenshot"><span>🖼️</span></button>
+          <div class="shot-actions">
+            <button type="button" id="shotBtn" class="ghost">Add screenshot</button>
+            <button type="button" id="shotRemove" class="ghost danger" hidden>Remove</button>
+            <p class="muted small">Pick from Photos, or paste an image.</p>
+          </div>
+        </div>
+        <input type="file" id="shotFile" accept="image/*" hidden>
+      </fieldset>
+      <fieldset>
         <legend>Muscle group</legend>
         <div class="chips selectable" id="editTags"></div>
       </fieldset>

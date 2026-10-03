@@ -17,6 +17,8 @@ const $ = (sel) => document.querySelector(sel);
 let items = load();
 const view = { status: 'todo', tag: null, q: '' };
 let editingId = null;
+let draftShot; // undefined = unchanged, null = remove, Blob = new screenshot
+const shots = new Map(); // item id -> { blob, url }
 
 function load() {
   try {
@@ -32,6 +34,89 @@ function persist() {
   } catch {
     toast('Could not save — storage is full or blocked');
   }
+}
+
+// ---------- screenshots (IndexedDB) ----------
+// Screenshots are too big for localStorage, so they live in IndexedDB keyed by item id.
+let dbPromise;
+function db() {
+  dbPromise ??= new Promise((resolve, reject) => {
+    const req = indexedDB.open('gymshot', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('shots');
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return dbPromise;
+}
+async function dbTx(mode, fn) {
+  const d = await db();
+  return new Promise((resolve, reject) => {
+    const tx = d.transaction('shots', mode);
+    const req = fn(tx.objectStore('shots'));
+    tx.oncomplete = () => resolve(req && req.result);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function loadShots() {
+  try {
+    const d = await db();
+    await new Promise((resolve, reject) => {
+      const req = d.transaction('shots').objectStore('shots').openCursor();
+      req.onsuccess = () => {
+        const c = req.result;
+        if (!c) return resolve();
+        if (c.value instanceof Blob) shots.set(c.key, { blob: c.value, url: URL.createObjectURL(c.value) });
+        c.continue();
+      };
+      req.onerror = () => reject(req.error);
+    });
+  } catch {
+    // IndexedDB unavailable (e.g. private mode) – app still works without screenshots.
+  }
+}
+
+// Updates the in-memory map right away (so render() sees it) and persists in the background.
+function setShot(id, blob) {
+  const old = shots.get(id);
+  if (old) URL.revokeObjectURL(old.url);
+  if (blob) {
+    shots.set(id, { blob, url: URL.createObjectURL(blob) });
+    dbTx('readwrite', (st) => st.put(blob, id)).catch(() => toast('Could not save the screenshot'));
+  } else {
+    shots.delete(id);
+    dbTx('readwrite', (st) => st.delete(id)).catch(() => {});
+  }
+}
+
+// Shrink to a small JPEG so hundreds of screenshots stay cheap to store.
+async function compressImage(file, maxSide = 720) {
+  const src = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = src;
+    });
+    const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * scale);
+    c.height = Math.round(img.naturalHeight * scale);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    return await new Promise((resolve) => c.toBlob(resolve, 'image/jpeg', 0.78));
+  } finally {
+    URL.revokeObjectURL(src);
+  }
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
 }
 
 // ---------- link helpers ----------
@@ -138,8 +223,12 @@ function el(tag, attrs = {}, ...children) {
 function card(it) {
   const p = platformOf(it.url);
   const yt = p && p.id === 'youtube' ? youtubeId(it.url) : null;
-  const thumb = el('a', { class: `thumb ${p ? p.id : ''}`, href: it.url, target: '_blank', rel: 'noopener', 'aria-label': 'Open video' },
-    yt ? el('img', { src: `https://i.ytimg.com/vi/${yt}/hqdefault.jpg`, alt: '', loading: 'lazy' }) : (p ? p.icon : '🔗'));
+  const shot = shots.get(it.id);
+  const thumb = el('a', { class: `thumb ${shot ? 'has-shot' : p ? p.id : ''}`, href: it.url, target: '_blank', rel: 'noopener', 'aria-label': 'Open video' },
+    shot ? el('img', { src: shot.url, alt: '' })
+      : yt ? el('img', { src: `https://i.ytimg.com/vi/${yt}/hqdefault.jpg`, alt: '', loading: 'lazy' })
+      : (p ? p.icon : '🔗'),
+    shot && p ? el('span', { class: 'badge' }, p.icon) : null);
 
   const date = new Date(it.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   return el('li', { class: 'card' + (it.tried ? ' tried' : ''), 'data-id': it.id },
@@ -188,10 +277,13 @@ function remove(id) {
   const idx = items.findIndex((i) => i.id === id);
   if (idx < 0) return;
   const [gone] = items.splice(idx, 1);
+  const goneShot = shots.get(id)?.blob;
+  if (goneShot) setShot(id, null);
   persist();
   render();
   toast('Deleted', 'Undo', () => {
     items.splice(idx, 0, gone);
+    if (goneShot) setShot(id, goneShot);
     persist();
     render();
   });
@@ -236,6 +328,8 @@ function openEditor(it, prefill = {}) {
   f.elements.notes.value = data.notes || '';
   f.elements.tried.checked = !!data.tried;
   f.elements.fav.checked = !!data.fav;
+  draftShot = undefined;
+  showShotPreview(it ? shots.get(it.id)?.url : null);
   const selected = new Set(data.tags || []);
   $('#editTags').replaceChildren(
     ...TAGS.map((t) => {
@@ -247,6 +341,47 @@ function openEditor(it, prefill = {}) {
   $('#editDlg').showModal();
   if (!it) setTimeout(() => f.elements.title.select(), 50);
 }
+
+function showShotPreview(url) {
+  const box = $('#shotPreview');
+  box.replaceChildren(url ? el('img', { src: url, alt: 'Screenshot' }) : el('span', {}, '🖼️'));
+  box.classList.toggle('empty-shot', !url);
+  $('#shotBtn').textContent = url ? 'Change screenshot' : 'Add screenshot';
+  $('#shotRemove').hidden = !url;
+}
+
+async function useShotFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  try {
+    const blob = await compressImage(file);
+    if (!blob) throw new Error('encode failed');
+    draftShot = blob;
+    if (showShotPreview.url) URL.revokeObjectURL(showShotPreview.url);
+    showShotPreview.url = URL.createObjectURL(blob);
+    showShotPreview(showShotPreview.url);
+  } catch {
+    toast('Could not read that image');
+  }
+}
+
+$('#shotBtn').addEventListener('click', () => $('#shotFile').click());
+$('#shotPreview').addEventListener('click', () => $('#shotFile').click());
+$('#shotFile').addEventListener('change', (e) => {
+  useShotFile(e.target.files[0]);
+  e.target.value = '';
+});
+$('#shotRemove').addEventListener('click', () => {
+  draftShot = null;
+  showShotPreview(null);
+});
+// Pasting an image anywhere in the dialog attaches it.
+$('#editDlg').addEventListener('paste', (e) => {
+  const file = [...(e.clipboardData?.files || [])].find((f) => f.type.startsWith('image/'));
+  if (file) {
+    e.preventDefault();
+    useShotFile(file);
+  }
+});
 
 $('#editForm').addEventListener('submit', (e) => {
   if (!e.submitter || e.submitter.value !== 'save') return;
@@ -262,11 +397,13 @@ $('#editForm').addEventListener('submit', (e) => {
     fav: f.elements.fav.checked,
   };
   if (editingId) {
+    if (draftShot !== undefined) setShot(editingId, draftShot);
     update(editingId, fields);
     toast('Updated');
   } else {
     const dup = findDuplicate(url);
     if (dup) {
+      if (draftShot !== undefined) setShot(dup.id, draftShot);
       update(dup.id, fields);
       revealItem(dup);
       toast('Already saved — updated it');
@@ -274,6 +411,7 @@ $('#editForm').addEventListener('submit', (e) => {
     }
     const it = { id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()), createdAt: Date.now(), ...fields };
     if (it.tried) it.triedAt = Date.now();
+    if (draftShot) setShot(it.id, draftShot);
     items.push(it);
     persist();
     revealItem(it);
@@ -372,8 +510,12 @@ const showHelp = () => { $('#menuDlg').close(); $('#helpDlg').showModal(); };
 $('#howBtn').addEventListener('click', showHelp);
 $('#howBtn2').addEventListener('click', showHelp);
 
-$('#exportBtn').addEventListener('click', () => {
-  const blob = new Blob([JSON.stringify({ app: 'gymshot', version: 1, exportedAt: new Date().toISOString(), items }, null, 2)], { type: 'application/json' });
+$('#exportBtn').addEventListener('click', async () => {
+  const withShots = await Promise.all(items.map(async (it) => {
+    const s = shots.get(it.id);
+    return s ? { ...it, shot: await blobToDataUrl(s.blob) } : it;
+  }));
+  const blob = new Blob([JSON.stringify({ app: 'gymshot', version: 2, exportedAt: new Date().toISOString(), items: withShots }, null, 2)], { type: 'application/json' });
   const a = el('a', { href: URL.createObjectURL(blob), download: `gymshot-backup-${new Date().toISOString().slice(0, 10)}.json` });
   document.body.append(a);
   a.click();
@@ -394,8 +536,12 @@ $('#importFile').addEventListener('change', async (e) => {
     let added = 0;
     for (const it of incoming) {
       if (!it || typeof it.url !== 'string' || findDuplicate(it.url)) continue;
+      const id = typeof it.id === 'string' && it.id ? it.id : String(Date.now() + Math.random());
+      if (typeof it.shot === 'string' && it.shot.startsWith('data:image/')) {
+        try { setShot(id, await (await fetch(it.shot)).blob()); } catch { /* skip bad image */ }
+      }
       items.push({
-        id: it.id || String(Date.now() + Math.random()),
+        id,
         url: it.url,
         title: String(it.title || defaultTitle(it.url)),
         notes: String(it.notes || ''),
@@ -439,3 +585,4 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 
 render();
 handleIncomingShare();
+loadShots().then(render);
