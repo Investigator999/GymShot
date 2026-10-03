@@ -12,6 +12,7 @@ const DEFAULT_COLS = [
 ];
 const COL_TEMPLATES = [
   ...DEFAULT_COLS,
+  { id: 'restaurants', name: 'Restaurants', emoji: '🍽️', tags: ['Date night', 'Brunch', 'Cheap eats', 'Family', 'Must try'] },
   { id: 'travel', name: 'Travel', emoji: '✈️', tags: ['Places', 'Hotels', 'Food spots', 'Tips'] },
   { id: 'beauty', name: 'Beauty', emoji: '💄', tags: ['Makeup', 'Skincare', 'Hair', 'Nails'] },
   { id: 'home', name: 'Home & DIY', emoji: '🏠', tags: ['Decor', 'Cleaning', 'Organizing', 'Repairs'] },
@@ -484,6 +485,7 @@ const NOTE_HINTS = {
   gym: 'Sets, reps, cues, which machine…',
   cooking: 'Ingredients, oven temperature, swaps…',
   funny: 'Who to send it to…',
+  restaurants: 'Location, what to order, price…',
 };
 let editorCol = null;
 let editorTags = new Set();
