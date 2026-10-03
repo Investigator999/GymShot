@@ -260,3 +260,6 @@ dialog.intro { padding: 0; overflow: hidden; width: min(440px, calc(100vw - 24px
 .colrow .name-in { flex: 1; font-weight: 700; }
 .small-btn { padding: 8px 10px; font-size: 13px; flex: none; white-space: nowrap; }
 .muted.small { font-size: 12px; }
+
+.paste-hint { margin: 8px 2px 0; font-size: 14px; color: var(--muted); }
+.paste-hint b { color: var(--text); }

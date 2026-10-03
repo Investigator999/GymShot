@@ -28,9 +28,10 @@
   <main>
     <section class="quick-add">
       <form id="quickForm" autocomplete="off">
-        <input id="quickUrl" type="url" inputmode="url" placeholder="Paste a reel / video link…" aria-label="Video link">
+        <input id="quickUrl" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="Paste a reel / video link…" aria-label="Video link">
         <button type="submit" class="primary">Add</button>
       </form>
+      <p id="pasteHint" class="paste-hint" hidden>Tap the box again, then tap <b>Paste</b></p>
     </section>
 
     <nav class="colbar" id="colBar" aria-label="Groups"></nav>
