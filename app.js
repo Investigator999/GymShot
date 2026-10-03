@@ -316,6 +316,7 @@ function card(it) {
         el('a', { class: 'open', href: it.url, target: '_blank', rel: 'noopener' }, 'Watch'),
         el('button', { class: it.tried ? 'on' : '', onclick: () => update(it.id, { tried: !it.tried }) }, it.tried ? '✓ Tried' : 'Mark tried'),
         el('button', { class: it.fav ? 'on' : '', 'aria-label': 'Favorite', onclick: () => update(it.id, { fav: !it.fav }) }, it.fav ? '★' : '☆'),
+        el('button', { onclick: () => shareItem(it) }, 'Share'),
         el('button', { onclick: () => openEditor(it) }, 'Edit'),
         el('button', { class: 'del', 'aria-label': 'Delete', onclick: () => remove(it.id) }, 'Delete')
       )
@@ -348,6 +349,25 @@ function update(id, patch) {
   if (patch.tried) it.triedAt = Date.now();
   persist();
   render();
+}
+
+// Share a saved video through the phone's share sheet; fall back to copying the link.
+async function shareItem(it) {
+  const text = `${it.title}${it.notes ? `\n${it.notes}` : ''}\n\nSaved with GymShot · gymshot.fit`;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: it.title, text, url: it.url });
+      return;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return; // the person closed the share sheet
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(it.url);
+    toast('Link copied. Paste it anywhere to share');
+  } catch {
+    window.prompt ? window.prompt('Copy this link:', it.url) : toast(it.url);
+  }
 }
 
 function remove(id) {
