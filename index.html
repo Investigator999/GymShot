@@ -29,7 +29,6 @@
     <section class="quick-add">
       <form id="quickForm" autocomplete="off">
         <input id="quickUrl" type="url" inputmode="url" placeholder="Paste a reel / video link…" aria-label="Video link">
-        <button type="button" id="pasteBtn" class="ghost" title="Paste from clipboard">Paste</button>
         <button type="submit" class="primary">Add</button>
       </form>
     </section>
@@ -72,9 +71,8 @@
           <button type="button" id="shotPreview" class="shot-preview empty-shot" aria-label="Choose screenshot"><span>🖼️</span></button>
           <div class="shot-actions">
             <button type="button" id="shotBtn" class="ghost">Add screenshot</button>
-            <button type="button" id="shotPaste" class="ghost">Paste image</button>
             <button type="button" id="shotRemove" class="ghost danger" hidden>Remove</button>
-            <p class="muted small">Pick from Photos, or copy a screenshot and tap Paste image.</p>
+            <p class="muted small">Pick it from your Photos.</p>
           </div>
         </div>
         <input type="file" id="shotFile" accept="image/*" hidden>
@@ -124,7 +122,7 @@
       <ol>
         <li>Tap <b>Share → Add to Home Screen</b>.</li>
         <li>iOS doesn't let web apps appear in the share sheet, so in Instagram tap <b>Share → Copy link</b>.</li>
-        <li>Open GymShot and tap <b>Paste</b> — then tag it and save.</li>
+        <li>Open GymShot, long-press the link box, choose <b>Paste</b> and tap <b>Add</b>.</li>
       </ol>
       <p class="muted">Your saves live only on this device. Use <b>Export backup</b> now and then.</p>
       <div class="dlg-actions"><button value="close" class="primary">Got it</button></div>
