@@ -51,7 +51,10 @@
       <div class="empty-emoji">🏋️</div>
       <h2>No saved moves yet</h2>
       <p>Share a reel or video to <b>GymShot</b> from Instagram, TikTok or YouTube — or paste a link above.</p>
-      <button id="howBtn" class="ghost">How do I share to GymShot?</button>
+      <div class="empty-actions">
+        <button id="introBtn2" class="primary">Watch the quick intro</button>
+        <button id="howBtn" class="ghost">How do I share to GymShot?</button>
+      </div>
     </div>
   </main>
 
@@ -100,12 +103,55 @@
     <form method="dialog">
       <h2>Menu</h2>
       <button type="button" id="installBtn" class="menu-item" hidden>📲 Install app</button>
+      <button type="button" id="introBtn" class="menu-item">👋 Quick intro</button>
       <button type="button" id="howBtn2" class="menu-item">❓ How to share to GymShot</button>
       <button type="button" id="exportBtn" class="menu-item">⬇️ Export backup (.json)</button>
       <button type="button" id="importBtn" class="menu-item">⬆️ Import backup</button>
       <input type="file" id="importFile" accept="application/json,.json" hidden>
       <div class="dlg-actions"><button value="close" class="ghost">Close</button></div>
     </form>
+  </dialog>
+
+  <!-- First-run intro -->
+  <dialog id="introDlg" class="intro" aria-label="Welcome to GymShot">
+    <div class="slides" id="slides">
+      <section class="slide">
+        <div class="hero">💪</div>
+        <h2>Never lose a gym reel again</h2>
+        <p>You spot a great exercise on Instagram or TikTok… then it’s buried in “Saved” or a chat with yourself.</p>
+        <ul class="compare">
+          <li class="bad">Lost in Saved / Watch later</li>
+          <li class="bad">Buried in WhatsApp messages</li>
+          <li class="good">One list, sorted by muscle group</li>
+        </ul>
+      </section>
+      <section class="slide">
+        <div class="hero">📲</div>
+        <h2>Save a reel in seconds</h2>
+        <ol class="steps" id="introSaveSteps"></ol>
+      </section>
+      <section class="slide">
+        <div class="hero">🏋️</div>
+        <h2>Open it at the gym</h2>
+        <ul class="feature">
+          <li><span>🦵</span><div><b>Tap a muscle group</b> — see everything you saved for today’s session.</div></li>
+          <li><span>▶️</span><div><b>Watch</b> the move, then do it.</div></li>
+          <li><span>✅</span><div><b>Mark tried</b> — it moves out of your to-try list.</div></li>
+          <li><span>🎲</span><div>Can’t decide? <b>Roll the dice</b> for a random move.</div></li>
+        </ul>
+      </section>
+      <section class="slide">
+        <div class="hero">🔒</div>
+        <h2>Private &amp; works offline</h2>
+        <p>Everything stays on your phone — no account, no sign-up. Use <b>⋯ → Export backup</b> now and then to keep a copy.</p>
+        <p class="tip" id="introInstallTip" hidden></p>
+      </section>
+    </div>
+    <div class="intro-nav">
+      <button type="button" id="introSkip" class="link-btn">Skip</button>
+      <div class="dots" id="introDots"></div>
+      <button type="button" id="introNext" class="primary" autofocus>Next</button>
+    </div>
   </dialog>
 
   <!-- Help dialog -->

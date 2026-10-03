@@ -494,6 +494,74 @@ $('#randomBtn').addEventListener('click', () => {
 $('#menuBtn').addEventListener('click', () => $('#menuDlg').showModal());
 const showHelp = () => { $('#menuDlg').close(); $('#helpDlg').showModal(); };
 $('#howBtn').addEventListener('click', showHelp);
+
+// ---------- first-run intro ----------
+const INTRO_KEY = 'gymshot.introSeen';
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isAndroid = /Android/.test(navigator.userAgent);
+const isInstalled = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+function buildIntro() {
+  const steps = isIOS
+    ? ['In Instagram / TikTok, take a <b>screenshot</b> of the reel.', 'Tap <b>Share → Copy link</b>.',
+       'In GymShot, long-press the link box → <b>Paste</b> → <b>Add</b>.', '<b>Add screenshot</b>, pick a muscle group, <b>Save</b>.']
+    : isAndroid
+      ? ['In Instagram / TikTok / YouTube tap <b>Share</b> on a reel.', 'Choose <b>GymShot</b> (look under “More” the first time).',
+         'Pick a muscle group, add a screenshot if you like.', 'Tap <b>Save</b> — done!']
+      : ['Copy the link of a reel or video.', 'Paste it into the link box and tap <b>Add</b>.',
+         'Pick a muscle group, add a screenshot and notes.', 'Tap <b>Save</b> — done!'];
+  // Steps are static strings written above, so innerHTML is safe here.
+  $('#introSaveSteps').innerHTML = steps.map((t) => `<li><div>${t}</div></li>`).join('');
+
+  const tip = $('#introInstallTip');
+  if (!isInstalled && (isIOS || isAndroid)) {
+    tip.innerHTML = isIOS
+      ? '📌 Tip: in Safari tap <b>Share → Add to Home Screen</b> to open GymShot like an app.'
+      : '📌 Tip: tap <b>⋮ → Install app</b> so GymShot shows up in your Share menu.';
+    tip.hidden = false;
+  }
+  const n = document.querySelectorAll('#slides .slide').length;
+  $('#introDots').replaceChildren(...Array.from({ length: n }, () => el('span')));
+}
+
+function introIndex() {
+  const box = $('#slides');
+  return Math.round(box.scrollLeft / box.clientWidth);
+}
+function updateIntroNav() {
+  const i = introIndex();
+  const n = document.querySelectorAll('#slides .slide').length;
+  document.querySelectorAll('#introDots span').forEach((d, k) => d.classList.toggle('on', k === i));
+  $('#introNext').textContent = i === n - 1 ? 'Start saving' : 'Next';
+  $('#introSkip').style.visibility = i === n - 1 ? 'hidden' : 'visible';
+}
+function openIntro() {
+  if ($('#menuDlg').open) $('#menuDlg').close();
+  $('#introDlg').showModal();
+  $('#slides').scrollTo({ left: 0, behavior: 'instant' });
+  updateIntroNav();
+}
+function closeIntro() {
+  try { localStorage.setItem(INTRO_KEY, '1'); } catch { /* ignore */ }
+  $('#introDlg').close();
+}
+buildIntro();
+$('#slides').addEventListener('scroll', () => requestAnimationFrame(updateIntroNav), { passive: true });
+$('#introNext').addEventListener('click', () => {
+  const box = $('#slides');
+  const n = document.querySelectorAll('#slides .slide').length;
+  if (introIndex() >= n - 1) {
+    closeIntro();
+    $('#quickUrl').focus();
+  } else {
+    box.scrollTo({ left: (introIndex() + 1) * box.clientWidth });
+  }
+});
+$('#introSkip').addEventListener('click', closeIntro);
+$('#introDlg').addEventListener('cancel', () => { try { localStorage.setItem(INTRO_KEY, '1'); } catch { /* ignore */ } });
+$('#introBtn').addEventListener('click', openIntro);
+$('#introBtn2').addEventListener('click', openIntro);
 $('#howBtn2').addEventListener('click', showHelp);
 
 $('#exportBtn').addEventListener('click', async () => {
@@ -570,5 +638,11 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 }
 
 render();
+const sharedIn = location.search.length > 1;
 handleIncomingShare();
 loadShots().then(render);
+
+// Show the intro once on first launch (but never on top of an incoming share).
+let introSeen = false;
+try { introSeen = !!localStorage.getItem(INTRO_KEY); } catch { /* ignore */ }
+if (!introSeen && !sharedIn && items.length === 0) openIntro();
