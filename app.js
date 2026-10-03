@@ -664,6 +664,22 @@ $('#quickForm').addEventListener('submit', (e) => {
   startAdd(v);
 });
 
+// Pasting a link opens the save screen straight away (no need to tap Add).
+$('#quickUrl').addEventListener('paste', (e) => {
+  const text = e.clipboardData?.getData('text') || '';
+  if (!extractUrl(text)) return; // let the browser paste whatever it is
+  e.preventDefault();
+  $('#quickUrl').value = '';
+  $('#quickUrl').blur();
+  $('#pasteHint').hidden = true;
+  startAdd(text, '', text);
+});
+// On iPhone a long press on an empty box only shows the magnifier; Paste appears on a second tap.
+const IS_IOS_DEVICE = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+$('#quickUrl').addEventListener('focus', () => { if (IS_IOS_DEVICE && !$('#quickUrl').value) $('#pasteHint').hidden = false; });
+$('#quickUrl').addEventListener('input', () => { $('#pasteHint').hidden = true; });
+$('#quickUrl').addEventListener('blur', () => { $('#pasteHint').hidden = true; });
+
 $('#statusSeg').addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (!b) return;
