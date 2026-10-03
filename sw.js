@@ -1,5 +1,5 @@
 // Offline cache for the app shell. Bump VERSION when shipping changes.
-const VERSION = 'gymshot-v2';
+const VERSION = 'gymshot-v3';
 const SHELL = [
   './',
   './index.html',
@@ -31,24 +31,18 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;
 
-  // Navigations (including share-target launches with ?url=...) get the app shell.
-  if (req.mode === 'navigate') {
-    event.respondWith(
-      fetch(req).catch(() => caches.match('./index.html'))
-    );
-    return;
-  }
-
-  // Stale-while-revalidate for static assets.
+  // Network-first so updates show up immediately; cache is the offline fallback.
   event.respondWith(
-    caches.match(req).then((cached) => {
-      const network = fetch(req)
-        .then((res) => {
-          if (res.ok) caches.open(VERSION).then((c) => c.put(req, res.clone()));
-          return res;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+    fetch(req)
+      .then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(VERSION).then((c) => c.put(req, copy));
+        }
+        return res;
+      })
+      .catch(() =>
+        caches.match(req).then((cached) => cached || (req.mode === 'navigate' ? caches.match('./index.html') : Response.error()))
+      )
   );
 });

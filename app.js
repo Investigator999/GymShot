@@ -330,6 +330,10 @@ function openEditor(it, prefill = {}) {
   f.elements.fav.checked = !!data.fav;
   draftShot = undefined;
   showShotPreview(it ? shots.get(it.id)?.url : null);
+  if (!it && pendingShot) {
+    useShotFile(pendingShot);
+    pendingShot = null;
+  }
   const selected = new Set(data.tags || []);
   $('#editTags').replaceChildren(
     ...TAGS.map((t) => {
@@ -467,17 +471,53 @@ $('#quickForm').addEventListener('submit', (e) => {
   startAdd(v);
 });
 
-$('#pasteBtn').addEventListener('click', async () => {
-  try {
-    const text = await navigator.clipboard.readText();
-    if (!extractUrl(text)) {
-      toast('No link on the clipboard');
-      return;
+// Reads the clipboard (must be called straight from a tap — iOS shows a "Paste" bubble).
+// Returns { text, image } where either may be empty.
+async function readClipboard() {
+  const out = { text: '', image: null };
+  if (navigator.clipboard?.read) {
+    for (const item of await navigator.clipboard.read()) {
+      const imgType = item.types.find((t) => t.startsWith('image/'));
+      if (imgType && !out.image) out.image = await item.getType(imgType);
+      const txtType = ['text/plain', 'text/uri-list'].find((t) => item.types.includes(t));
+      if (txtType && !out.text) out.text = await (await item.getType(txtType)).text();
     }
-    startAdd(text, '', text);
+  } else {
+    out.text = await navigator.clipboard.readText();
+  }
+  return out;
+}
+
+// A screenshot pasted before its link is held here and attached to the next new move.
+let pendingShot = null;
+
+$('#pasteBtn').addEventListener('click', async () => {
+  let clip;
+  try {
+    clip = await readClipboard();
   } catch {
     $('#quickUrl').focus();
     toast('Long-press the box and choose Paste');
+    return;
+  }
+  if (extractUrl(clip.text)) {
+    if (clip.image) pendingShot = clip.image;
+    startAdd(clip.text, '', clip.text);
+  } else if (clip.image) {
+    pendingShot = clip.image;
+    toast('Screenshot ready 📸 Now copy the reel link and tap Paste again');
+  } else {
+    toast('Nothing to paste — copy a link or screenshot first');
+  }
+});
+
+$('#shotPaste').addEventListener('click', async () => {
+  try {
+    const { image } = await readClipboard();
+    if (image) useShotFile(image);
+    else toast('No image on the clipboard — copy a screenshot first');
+  } catch {
+    toast('Could not read the clipboard — use “Add screenshot” instead');
   }
 });
 
