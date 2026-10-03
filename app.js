@@ -539,7 +539,11 @@ function updateIntroNav() {
 function openIntro() {
   if ($('#menuDlg').open) $('#menuDlg').close();
   $('#introDlg').showModal();
-  $('#slides').scrollTo({ left: 0, behavior: 'instant' });
+  // Jump to the first slide without animating. (Avoids scrollTo's 'instant' option, which older Safari rejects.)
+  const box = $('#slides');
+  box.style.scrollBehavior = 'auto';
+  box.scrollLeft = 0;
+  box.style.scrollBehavior = '';
   updateIntroNav();
 }
 function closeIntro() {
@@ -634,7 +638,19 @@ $('#installBtn').addEventListener('click', async () => {
 });
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  // When a new version is deployed, the new service worker takes over; reload once so the
+  // page never keeps running old code against new HTML.
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    // Don't interrupt someone mid-save; the new code will load next time.
+    if (!hadController || reloaded || document.querySelector('dialog[open]:not(#introDlg)')) return;
+    reloaded = true;
+    location.reload();
+  });
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+    .then((reg) => reg.update())
+    .catch(() => {});
 }
 
 render();
