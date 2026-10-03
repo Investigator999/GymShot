@@ -27,6 +27,11 @@ GymShot is an installable web app (PWA). On Android it shows up in the **Share**
 3. Live at `https://gymshot.pages.dev`; every push to `main` redeploys. `_headers` keeps the service worker uncached.
 4. Optional: **Custom domains** tab to attach a domain bought through Cloudflare.
 
+## Deploy (Vercel)
+1. vercel.com → **Add New → Project → Import** this GitHub repo.
+2. Framework preset **Other**, no build command, output directory left as default.
+3. Live at `https://<project>.vercel.app`; every push to `main` redeploys. `vercel.json` keeps the service worker uncached.
+
 ## Install on your phone
 - **Android (Chrome):** open the site → ⋮ → **Install app**. Then in Instagram tap **Share → GymShot**.
 - **iPhone (Safari):** Share → **Add to Home Screen**. iOS doesn't allow web apps in the share sheet, so use **Copy link** in Instagram, then open GymShot, paste it into the link box and tap **Add**.
