@@ -263,3 +263,24 @@ dialog.intro { padding: 0; overflow: hidden; width: min(440px, calc(100vw - 24px
 
 .paste-hint { margin: 8px 2px 0; font-size: 14px; color: var(--muted); }
 .paste-hint b { color: var(--text); }
+
+/* Banner shown inside TikTok / Instagram / Facebook in-app browsers */
+.inapp {
+  position: relative; margin: 0 0 14px; padding: 14px 44px 14px 14px;
+  border-radius: var(--radius); background: var(--surface);
+  border: 2px solid var(--accent);
+}
+.inapp h2 { margin: 0 0 6px; font-size: 17px; }
+.inapp p { margin: 0 0 12px; color: var(--muted); }
+.inapp p b { color: var(--text); }
+.inapp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.inapp-x {
+  position: absolute; top: 8px; right: 8px; width: 32px; height: 32px;
+  border: 0; border-radius: 10px; background: var(--surface-2); color: var(--muted);
+}
+.inapp-arrow {
+  position: absolute; top: -6px; right: 48px; font-size: 30px; font-weight: 800;
+  color: var(--accent); animation: inapp-nudge 1.2s ease-in-out infinite;
+}
+@keyframes inapp-nudge { 50% { transform: translate(4px, -6px); } }
+@media (prefers-reduced-motion: reduce) { .inapp-arrow { animation: none; } }
