@@ -1014,6 +1014,57 @@ async function backfillPreviews() {
 }
 
 // Show the intro once on first launch (but never on top of an incoming share).
+// ---------- opened inside TikTok / Instagram / Facebook ----------
+// Their built-in browsers can't install web apps and keep their own storage, so anything
+// saved there is lost. Point people to their real browser instead.
+const IN_APP = (() => {
+  const ua = navigator.userAgent;
+  if (/musical_ly|Bytedance|TikTok|trill_/i.test(ua)) return 'TikTok';
+  if (/Instagram/i.test(ua)) return 'Instagram';
+  if (/FBAN|FBAV|FB_IAB|FBIOS/i.test(ua)) return 'Facebook';
+  if (/Snapchat/i.test(ua)) return 'Snapchat';
+  return null;
+})();
+const INAPP_KEY = 'gymshot.inappDismissed';
+
+function showInAppBanner() {
+  if (!IN_APP || isInstalled) return;
+  try { if (sessionStorage.getItem(INAPP_KEY)) return; } catch { /* ignore */ }
+  const browser = isIOS ? 'Safari' : 'Chrome';
+  $('#inappTitle').textContent = `You’re inside ${IN_APP}`;
+  // Static strings only, so innerHTML is safe here.
+  $('#inappText').innerHTML = isIOS
+    ? `Saves made here get lost. Tap <b>⋯</b> in ${IN_APP}’s bar <b>above this page</b>, then <b>Open in ${IN_APP === 'TikTok' ? 'browser' : 'external browser'}</b>. Then in Safari tap <b>Share → Add to Home Screen</b>.`
+    : `Saves made here get lost. Open GymShot in <b>${browser}</b> to install it, then it shows up in your Share menu.`;
+  if (isAndroid) {
+    $('#inappOpen').hidden = false;
+    $('#inappArrow').hidden = true;
+  }
+  $('#inappBanner').hidden = false;
+}
+$('#inappOpen').addEventListener('click', () => {
+  // Android intent link: hands the page to Chrome; falls back to the same page if Chrome is missing.
+  const here = location.href;
+  const path = here.replace(/^https?:\/\//, '');
+  location.href = `intent://${path}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(here)};end`;
+  setTimeout(() => toast(`If nothing happened, tap ⋮ at the top right → Open in browser`), 1500);
+});
+$('#inappCopy').addEventListener('click', async () => {
+  const link = location.origin + location.pathname;
+  try {
+    await navigator.clipboard.writeText(link);
+    toast(`Link copied. Paste it in ${isIOS ? 'Safari' : 'Chrome'}`);
+  } catch {
+    toast(`Open ${link} in ${isIOS ? 'Safari' : 'Chrome'}`);
+  }
+});
+$('#inappClose').addEventListener('click', () => {
+  $('#inappBanner').hidden = true;
+  try { sessionStorage.setItem(INAPP_KEY, '1'); } catch { /* ignore */ }
+});
+showInAppBanner();
+
 let introSeen = false;
 try { introSeen = !!localStorage.getItem(INTRO_KEY); } catch { /* ignore */ }
-if (!introSeen && !sharedIn && items.length === 0) openIntro();
+// Inside TikTok/Instagram the banner matters more; the intro shows once they open the real browser.
+if (!introSeen && !sharedIn && !IN_APP && items.length === 0) openIntro();

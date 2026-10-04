@@ -26,6 +26,17 @@
   </header>
 
   <main>
+    <section id="inappBanner" class="inapp" hidden role="alert">
+      <button type="button" id="inappClose" class="inapp-x" aria-label="Dismiss">✕</button>
+      <div class="inapp-arrow" id="inappArrow" aria-hidden="true">↗</div>
+      <h2 id="inappTitle">You’re inside an app’s browser</h2>
+      <p id="inappText"></p>
+      <div class="inapp-actions">
+        <button type="button" id="inappOpen" class="primary" hidden>Open in Chrome</button>
+        <button type="button" id="inappCopy" class="ghost">Copy link</button>
+      </div>
+    </section>
+
     <section class="quick-add">
       <form id="quickForm" autocomplete="off">
         <input id="quickUrl" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="Paste a reel / video link…" aria-label="Video link">
