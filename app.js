@@ -678,29 +678,55 @@ function toast(msg, actionLabel, action) {
 }
 
 // ---------- UI wiring ----------
+// With an empty box the button reads "Paste" and pulls the copied link from the clipboard.
+// On iPhone that shows Apple's own "Paste" bubble, which works even when the text-box menu doesn't.
+function syncAddBtn() {
+  $('#addBtn').textContent = $('#quickUrl').value.trim() ? 'Add' : 'Paste';
+}
+
+async function pasteFromClipboard() {
+  if (!navigator.clipboard?.readText) {
+    $('#quickUrl').focus();
+    toast('Paste the link into the box, then tap Add');
+    return;
+  }
+  // Must start inside the tap, before any await, or iOS refuses.
+  const pending = navigator.clipboard.readText();
+  if (IS_IOS_DEVICE) $('#pasteHint').hidden = false;
+  try {
+    const text = await pending;
+    $('#pasteHint').hidden = true;
+    if (extractUrl(text)) startAdd(text, '', text);
+    else toast('No link copied yet. In Instagram or TikTok tap Share → Copy link first');
+  } catch {
+    $('#pasteHint').hidden = true;
+    $('#quickUrl').focus();
+    toast('Paste the link into the box, then tap Add');
+  }
+}
+
 $('#quickForm').addEventListener('submit', (e) => {
   e.preventDefault();
   const v = $('#quickUrl').value;
-  if (!v.trim()) return;
+  if (!v.trim()) { pasteFromClipboard(); return; }
   $('#quickUrl').value = '';
+  syncAddBtn();
   startAdd(v);
 });
 
-// Pasting a link opens the save screen straight away (no need to tap Add).
+// Pasting a link into the box opens the save screen straight away.
 $('#quickUrl').addEventListener('paste', (e) => {
-  const text = e.clipboardData?.getData('text') || '';
+  const cd = e.clipboardData;
+  const text = cd ? (cd.getData('text') || cd.getData('text/uri-list') || cd.getData('URL')) : '';
   if (!extractUrl(text)) return; // let the browser paste whatever it is
   e.preventDefault();
   $('#quickUrl').value = '';
   $('#quickUrl').blur();
-  $('#pasteHint').hidden = true;
+  syncAddBtn();
   startAdd(text, '', text);
 });
-// On iPhone a long press on an empty box only shows the magnifier; Paste appears on a second tap.
 const IS_IOS_DEVICE = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-$('#quickUrl').addEventListener('focus', () => { if (IS_IOS_DEVICE && !$('#quickUrl').value) $('#pasteHint').hidden = false; });
-$('#quickUrl').addEventListener('input', () => { $('#pasteHint').hidden = true; });
-$('#quickUrl').addEventListener('blur', () => { $('#pasteHint').hidden = true; });
+$('#quickUrl').addEventListener('input', syncAddBtn);
 
 $('#statusSeg').addEventListener('click', (e) => {
   const b = e.target.closest('button');
@@ -740,7 +766,7 @@ const isInstalled = matchMedia('(display-mode: standalone)').matches || navigato
 function buildIntro() {
   const steps = isIOS
     ? ['In Instagram / TikTok, take a <b>screenshot</b> of the reel.', 'Tap <b>Share → Copy link</b>.',
-       'In GymShot, long-press the link box → <b>Paste</b> → <b>Add</b>.', '<b>Add screenshot</b>, pick a muscle group, <b>Save</b>.']
+       'In GymShot tap <b>Paste</b>, then the little <b>Paste</b> bubble.', '<b>Add screenshot</b>, pick a muscle group, <b>Save</b>.']
     : isAndroid
       ? ['In Instagram / TikTok / YouTube tap <b>Share</b> on a reel.', 'Choose <b>GymShot</b> (look under “More” the first time).',
          'Pick a muscle group, add a screenshot if you like.', 'Tap <b>Save</b> — done!']
