@@ -36,7 +36,7 @@ GymShot is an installable web app (PWA). On Android it shows up in the **Share**
 
 ## Install on your phone
 - **Android (Chrome):** open the site → ⋮ → **Install app**. Then in Instagram tap **Share → GymShot**.
-- **iPhone (Safari):** Share → **Add to Home Screen**. iOS doesn't allow web apps in the share sheet, so use **Copy link** in Instagram, then open GymShot, paste it into the link box and tap **Add**.
+- **iPhone (Safari):** Share → **Add to Home Screen**. iOS doesn't allow web apps in the share sheet, so use **Copy link** in Instagram, then open GymShot and tap **Paste** (iOS shows a small Paste bubble to confirm).
 
 ## Run locally
 ```sh
