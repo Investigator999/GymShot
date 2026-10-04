@@ -197,7 +197,7 @@ function normalizeUrl(url) {
     const u = new URL(url);
     u.hash = '';
     const p = platformOf(url);
-    if (p && p.id === 'youtube') {
+    if (p && (p.id === 'youtube' || p.id === 'facebook')) {
       const v = u.searchParams.get('v');
       u.search = v ? `?v=${v}` : '';
     } else if (p) {
@@ -424,6 +424,8 @@ const OEMBED = {
   // reads them from Instagram's public embed page and answers in the same shape.
   instagram: (u) => `api/ig?url=${encodeURIComponent(u)}`,
   youtube: (u) => `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(u)}`,
+  // Facebook gives no cover image; api/fb.js finds the video file and we grab a frame from it.
+  facebook: (u) => `api/fb?url=${encodeURIComponent(u)}`,
 };
 
 function canPreview(url) {
@@ -443,6 +445,52 @@ function fetchWithTimeout(url, opts = {}, ms = 15000) {
   return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(timer));
 }
 
+// Load a video off-screen and capture a frame about a second in, as a JPEG blob.
+// Needs the video host to allow CORS (Facebook's CDN does), otherwise the canvas is locked.
+function frameFromVideo(src, ms = 15000) {
+  return new Promise((resolve) => {
+    const v = document.createElement('video');
+    let done = false;
+    const finish = (blob) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      v.pause();
+      v.removeAttribute('src');
+      v.load();
+      v.remove();
+      resolve(blob);
+    };
+    const timer = setTimeout(() => finish(null), ms);
+    v.crossOrigin = 'anonymous';
+    v.muted = true;
+    v.playsInline = true;
+    v.preload = 'auto';
+    v.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;';
+    v.addEventListener('loadedmetadata', () => {
+      v.pause();
+      v.currentTime = Math.min(1, (v.duration || 4) / 4);
+    }, { once: true });
+    v.addEventListener('seeked', () => {
+      try {
+        const scale = Math.min(1, 720 / Math.max(v.videoWidth, v.videoHeight));
+        const c = document.createElement('canvas');
+        c.width = Math.round(v.videoWidth * scale);
+        c.height = Math.round(v.videoHeight * scale);
+        c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+        c.toBlob((b) => finish(b), 'image/jpeg', 0.78);
+      } catch {
+        finish(null);
+      }
+    }, { once: true });
+    v.addEventListener('error', () => finish(null));
+    document.body.append(v);
+    v.src = src;
+    // iPhone only starts loading a video once it plays; muted autoplay is allowed.
+    v.play()?.catch(() => {});
+  });
+}
+
 async function fetchPreview(url) {
   const p = platformOf(url);
   if (!p || !OEMBED[p.id]) return null;
@@ -460,6 +508,8 @@ async function fetchPreview(url) {
       const r = await fetchWithTimeout(thumb, { referrerPolicy: 'no-referrer' });
       if (r.ok) image = await compressImage(await r.blob());
     } catch { /* keep the title even if the image fails */ }
+  } else if (data.video_url) {
+    image = await frameFromVideo(data.video_url);
   }
   const title = cleanCaption(data.title) || (data.author_name ? `@${data.author_name} on ${p.name}` : '');
   return image || title ? { title, image } : null;

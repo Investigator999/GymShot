@@ -1,5 +1,5 @@
 // Offline cache for the app shell. Bump VERSION when shipping changes.
-const VERSION = 'gymshot-v15';
+const VERSION = 'gymshot-v16';
 const SHELL = [
   './',
   './index.html',

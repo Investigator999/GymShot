@@ -7,7 +7,7 @@ GymShot is an installable web app (PWA). On Android it shows up in the **Share**
 ## Features
 - **Share straight from Instagram / TikTok / YouTube** (Android, via the Web Share Target API)
 - Paste-a-link quick add (works everywhere, including iPhone)
-- TikTok, YouTube and Instagram links get their cover image and title automatically (TikTok/YouTube oEmbed; Instagram via the `api/ig` Vercel function reading Instagram's public embed page)
+- TikTok, YouTube, Instagram and Facebook links get their cover image and title automatically (TikTok/YouTube oEmbed; Instagram via the `api/ig` Vercel function reading Instagram's public embed page; Facebook via `api/fb`, which finds the video in Facebook's public embed player so the app can capture a frame from it)
 - Attach a screenshot of the reel so you can spot it at a glance (stored on-device, compressed)
 - **Groups** for any topic: Gym, Cooking, Funny, or your own (each with its own tags); manage them in ⋯ → Manage groups
 - Tag by muscle group (Chest, Back, Legs, …), add notes (sets, reps, cues)
