@@ -265,7 +265,7 @@ function renderCols() {
       b.onclick = () => { setViewCol(c.id); render(); };
       return b;
     }),
-    el('button', { type: 'button', class: 'colpill add', onclick: () => openCols(true) }, '+ New group'));
+    el('button', { type: 'button', class: 'colpill add', onclick: () => openCols(true) }, '+ New'));
 }
 
 function renderChips() {
