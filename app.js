@@ -420,6 +420,9 @@ function revealItem(it) {
 // so those links get a thumbnail without a screenshot. Instagram requires a paid token, so it can't.
 const OEMBED = {
   tiktok: (u) => `https://www.tiktok.com/oembed?url=${encodeURIComponent(u)}`,
+  // Instagram dropped thumbnails from its oEmbed API, so our own helper (api/ig.js on Vercel)
+  // reads them from Instagram's public embed page and answers in the same shape.
+  instagram: (u) => `api/ig?url=${encodeURIComponent(u)}`,
   youtube: (u) => `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(u)}`,
 };
 
@@ -765,8 +768,8 @@ const isInstalled = matchMedia('(display-mode: standalone)').matches || navigato
 
 function buildIntro() {
   const steps = isIOS
-    ? ['In Instagram / TikTok, take a <b>screenshot</b> of the reel.', 'Tap <b>Share → Copy link</b>.',
-       'In GymShot tap <b>Paste</b>, then the little <b>Paste</b> bubble.', '<b>Add screenshot</b>, pick a muscle group, <b>Save</b>.']
+    ? ['In Instagram / TikTok, open the reel you like.', 'Tap <b>Share → Copy link</b>.',
+       'In GymShot tap <b>Paste</b>, then the little <b>Paste</b> bubble.', 'The cover fills in by itself. Pick a group, <b>Save</b>.']
     : isAndroid
       ? ['In Instagram / TikTok / YouTube tap <b>Share</b> on a reel.', 'Choose <b>GymShot</b> (look under “More” the first time).',
          'Pick a muscle group, add a screenshot if you like.', 'Tap <b>Save</b> — done!']
