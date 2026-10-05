@@ -1,16 +1,20 @@
 // Offline cache for the app shell. Bump VERSION when shipping changes.
-const VERSION = 'laterbabe-v17';
+const VERSION = 'gymshot-v18';
 const SHELL = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './manifest.webmanifest',
+  './manifest-gym.webmanifest',
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
   './fonts/shrikhand-latin.woff2',
+  './icons/gym-icon.svg',
+  './icons/gym-icon-192.png',
+  './icons/gym-apple-touch-icon.png',
 ];
 
 self.addEventListener('install', (event) => {
