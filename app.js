@@ -3,18 +3,19 @@
 const STORE_KEY = 'gymshot.items.v1';
 const COLS_KEY = 'gymshot.collections.v1';
 const VIEW_COL_KEY = 'gymshot.view.col';
-const GYM_TAGS = ['Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Glutes', 'Core', 'Full body', 'Cardio', 'Mobility'];
-// Groups ("collections") let one app hold gym moves, recipes, funny videos and anything else.
+const FIT_TAGS = ['Abs', 'Glutes', 'Legs', 'Arms', 'Full body', 'Pilates', 'Yoga', 'Cardio', 'Stretching'];
+// Groups ("collections") let one app hold workouts, beauty, recipes and anything else.
+// Ids stay stable (the fitness group is still 'gym') so older saves keep their group.
 const DEFAULT_COLS = [
-  { id: 'gym', name: 'Gym', emoji: '💪', tags: GYM_TAGS },
-  { id: 'cooking', name: 'Cooking', emoji: '🍳', tags: ['Breakfast', 'Lunch', 'Dinner', 'Dessert', 'Healthy', 'Quick'] },
-  { id: 'funny', name: 'Funny', emoji: '😂', tags: ['Pets', 'Kids', 'Pranks', 'Memes'] },
+  { id: 'gym', name: 'Fitness', emoji: '🧘‍♀️', tags: FIT_TAGS },
+  { id: 'beauty', name: 'Beauty', emoji: '💄', tags: ['Makeup', 'Skincare', 'Hair', 'Nails', 'Outfits'] },
+  { id: 'cooking', name: 'Recipes', emoji: '🍳', tags: ['Breakfast', 'Lunch', 'Dinner', 'Dessert', 'Healthy', 'Quick'] },
+  { id: 'restaurants', name: 'Date spots', emoji: '🍸', tags: ['Date night', 'Brunch', 'Cafés', 'Cheap eats', 'Must try'] },
 ];
 const COL_TEMPLATES = [
   ...DEFAULT_COLS,
-  { id: 'restaurants', name: 'Restaurants', emoji: '🍽️', tags: ['Date night', 'Brunch', 'Cheap eats', 'Family', 'Must try'] },
+  { id: 'funny', name: 'Funny', emoji: '😂', tags: ['Pets', 'Kids', 'Pranks', 'Memes'] },
   { id: 'travel', name: 'Travel', emoji: '✈️', tags: ['Places', 'Hotels', 'Food spots', 'Tips'] },
-  { id: 'beauty', name: 'Beauty', emoji: '💄', tags: ['Makeup', 'Skincare', 'Hair', 'Nails'] },
   { id: 'home', name: 'Home & DIY', emoji: '🏠', tags: ['Decor', 'Cleaning', 'Organizing', 'Repairs'] },
   { id: 'learning', name: 'Learning', emoji: '📚', tags: ['Language', 'Tech', 'Money', 'Life hacks'] },
   { id: 'kids', name: 'Kids', emoji: '🧸', tags: ['Activities', 'Crafts', 'Parenting', 'Food'] },
@@ -353,7 +354,7 @@ function update(id, patch) {
 
 // Share a saved video through the phone's share sheet; fall back to copying the link.
 async function shareItem(it) {
-  const text = `${it.title}${it.notes ? `\n${it.notes}` : ''}\n\nSaved with GymShot · gymshot.fit`;
+  const text = `${it.title}${it.notes ? `\n${it.notes}` : ''}\n\nSaved with Later, Babe · ${location.host}`;
   if (navigator.share) {
     try {
       await navigator.share({ title: it.title, text, url: it.url });
@@ -523,7 +524,7 @@ function openEditor(it, prefill = {}) {
   editingId = it ? it.id : null;
   const f = $('#editForm');
   const data = it || { url: '', title: '', notes: '', tags: [], tried: false, fav: false, ...prefill };
-  $('#editTitle').textContent = it ? 'Edit move' : 'Save move';
+  $('#editTitle').textContent = it ? 'Edit' : 'Save it';
   f.elements.url.value = data.url;
   f.elements.title.value = data.title;
   f.elements.notes.value = data.notes || '';
@@ -555,7 +556,8 @@ function openEditor(it, prefill = {}) {
 }
 
 const NOTE_HINTS = {
-  gym: 'Sets, reps, cues, which machine…',
+  gym: 'Sets, reps, how it felt…',
+  beauty: 'Products, shades, where to buy…',
   cooking: 'Ingredients, oven temperature, swaps…',
   funny: 'Who to send it to…',
   restaurants: 'Location, what to order, price…',
@@ -570,7 +572,7 @@ function renderEditorGroups() {
     return b;
   }));
   const col = colById(editorCol);
-  $('#tagLegend').textContent = col.id === 'gym' ? 'Muscle group' : 'Tags';
+  $('#tagLegend').textContent = col.id === 'gym' ? 'Focus' : 'Tags';
   $('#editTitle').textContent = editingId ? 'Edit' : `Save to ${col.name}`;
   $('#editForm').elements.notes.placeholder = NOTE_HINTS[col.id] || 'Notes, tips, anything to remember…';
   $('#editTags').replaceChildren(...col.tags.map((t) => {
@@ -797,7 +799,7 @@ $('#randomBtn').addEventListener('click', () => {
   let pool = filtered().filter((i) => !i.tried);
   if (!pool.length) pool = items.filter((i) => !i.tried && itemCol(i) === view.col && (!view.tag || (i.tags || []).includes(view.tag)));
   if (!pool.length) {
-    toast(items.length ? 'Nothing left to try here — nice work!' : 'Save some moves first');
+    toast(items.length ? 'Nothing left to try here — nice work!' : 'Save something first, babe');
     return;
   }
   const pick = pool[Math.floor(Math.random() * pool.length)];
@@ -819,20 +821,20 @@ const isInstalled = matchMedia('(display-mode: standalone)').matches || navigato
 function buildIntro() {
   const steps = isIOS
     ? ['In Instagram / TikTok, open the reel you like.', 'Tap <b>Share → Copy link</b>.',
-       'In GymShot tap <b>Paste</b>, then the little <b>Paste</b> bubble.', 'The cover fills in by itself. Pick a group, <b>Save</b>.']
+       'In Later, Babe tap <b>Paste</b>, then the little <b>Paste</b> bubble.', 'The cover fills in by itself. Pick a group, <b>Save</b>.']
     : isAndroid
-      ? ['In Instagram / TikTok / YouTube tap <b>Share</b> on a reel.', 'Choose <b>GymShot</b> (look under “More” the first time).',
-         'Pick a muscle group, add a screenshot if you like.', 'Tap <b>Save</b> — done!']
+      ? ['In Instagram / TikTok / YouTube tap <b>Share</b> on a reel.', 'Choose <b>Later, Babe</b> (look under “More” the first time).',
+         'Pick a group, add a screenshot if you like.', 'Tap <b>Save</b> — done!']
       : ['Copy the link of a reel or video.', 'Paste it into the link box and tap <b>Add</b>.',
-         'Pick a muscle group, add a screenshot and notes.', 'Tap <b>Save</b> — done!'];
+         'Pick a group, add a screenshot and notes.', 'Tap <b>Save</b> — done!'];
   // Steps are static strings written above, so innerHTML is safe here.
   $('#introSaveSteps').innerHTML = steps.map((t) => `<li><div>${t}</div></li>`).join('');
 
   const tip = $('#introInstallTip');
   if (!isInstalled && (isIOS || isAndroid)) {
     tip.innerHTML = isIOS
-      ? '📌 Tip: in Safari tap <b>Share → Add to Home Screen</b> to open GymShot like an app.'
-      : '📌 Tip: tap <b>⋮ → Install app</b> so GymShot shows up in your Share menu.';
+      ? '📌 Tip: in Safari tap <b>Share → Add to Home Screen</b> to open Later, Babe like an app.'
+      : '📌 Tip: tap <b>⋮ → Install app</b> so Later, Babe shows up in your Share menu.';
     tip.hidden = false;
   }
   const n = document.querySelectorAll('#slides .slide').length;
@@ -888,12 +890,12 @@ $('#exportBtn').addEventListener('click', async () => {
     return s ? { ...it, shot: await blobToDataUrl(s.blob) } : it;
   }));
   const blob = new Blob([JSON.stringify({ app: 'gymshot', version: 3, exportedAt: new Date().toISOString(), collections, items: withShots }, null, 2)], { type: 'application/json' });
-  const a = el('a', { href: URL.createObjectURL(blob), download: `gymshot-backup-${new Date().toISOString().slice(0, 10)}.json` });
+  const a = el('a', { href: URL.createObjectURL(blob), download: `laterbabe-backup-${new Date().toISOString().slice(0, 10)}.json` });
   document.body.append(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  toast(`Exported ${items.length} moves`);
+  toast(`Exported ${items.length} video${items.length === 1 ? '' : 's'}`);
 });
 
 $('#importBtn').addEventListener('click', () => $('#importFile').click());
@@ -940,7 +942,7 @@ $('#importFile').addEventListener('change', async (e) => {
     $('#menuDlg').close();
     view.status = 'all';
     render();
-    toast(`Imported ${added} new move${added === 1 ? '' : 's'}`);
+    toast(`Imported ${added} new video${added === 1 ? '' : 's'}`);
   } catch {
     toast('Could not read that backup file');
   }
@@ -1085,7 +1087,7 @@ function showInAppBanner() {
   // Static strings only, so innerHTML is safe here.
   $('#inappText').innerHTML = isIOS
     ? `Saves made here get lost. Tap <b>⋯</b> in ${IN_APP}’s bar <b>above this page</b>, then <b>Open in ${IN_APP === 'TikTok' ? 'browser' : 'external browser'}</b>. Then in Safari tap <b>Share → Add to Home Screen</b>.`
-    : `Saves made here get lost. Open GymShot in <b>${browser}</b> to install it, then it shows up in your Share menu.`;
+    : `Saves made here get lost. Open Later, Babe in <b>${browser}</b> to install it, then it shows up in your Share menu.`;
   if (isAndroid) {
     $('#inappOpen').hidden = false;
     $('#inappArrow').hidden = true;

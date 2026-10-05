@@ -3,21 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>GymShot</title>
-  <meta name="description" content="Save gym reels and videos you want to try later.">
-  <meta name="theme-color" content="#0f1115">
+  <title>Later, Babe</title>
+  <meta name="description" content="Save reels and videos from Instagram, TikTok, YouTube and Facebook in one place, to try later.">
+  <meta name="theme-color" content="#fff4ef" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1d0b14" media="(prefers-color-scheme: dark)">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-title" content="Later, Babe">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="preload" href="fonts/shrikhand-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="top">
     <div class="brand">
       <img src="icons/icon.svg" alt="" width="32" height="32">
-      <h1>GymShot</h1>
+      <h1>Later, Babe</h1>
     </div>
     <div class="top-actions">
       <button id="randomBtn" class="icon-btn" title="Pick something to try" aria-label="Pick something to try">🎲</button>
@@ -62,12 +65,12 @@
     <ul id="list" class="list"></ul>
 
     <div id="empty" class="empty" hidden>
-      <div class="empty-emoji">🏋️</div>
-      <h2>No saved moves yet</h2>
-      <p>Share a reel or video to <b>GymShot</b> from Instagram, TikTok or YouTube — or paste a link above.</p>
+      <div class="empty-emoji">💋</div>
+      <h2>Nothing saved yet, babe</h2>
+      <p>Share a reel or video to <b>Later, Babe</b> from Instagram, TikTok, YouTube or Facebook, or paste a link above.</p>
       <div class="empty-actions">
         <button id="introBtn2" class="primary">Watch the quick intro</button>
-        <button id="howBtn" class="ghost">How do I share to GymShot?</button>
+        <button id="howBtn" class="ghost">How do I save a video?</button>
       </div>
     </div>
   </main>
@@ -75,12 +78,12 @@
   <!-- Add / edit dialog -->
   <dialog id="editDlg">
     <form method="dialog" id="editForm">
-      <h2 id="editTitle">Save move</h2>
+      <h2 id="editTitle">Save it</h2>
       <label>Link
         <input name="url" type="url" required>
       </label>
       <label>Title
-        <input name="title" type="text" placeholder="e.g. Cable lateral raise variation">
+        <input name="title" type="text" placeholder="e.g. 10-min booty burn">
       </label>
       <fieldset>
         <legend>Screenshot <span class="muted">(helps you spot it later)</span></legend>
@@ -107,7 +110,7 @@
         </div>
       </fieldset>
       <label>Notes
-        <textarea name="notes" rows="3" placeholder="Sets, reps, cues, which machine…"></textarea>
+        <textarea name="notes" rows="3" placeholder="Notes, tips, anything to remember…"></textarea>
       </label>
       <div class="row">
         <label class="check"><input type="checkbox" name="tried"> Tried it</label>
@@ -127,7 +130,7 @@
       <button type="button" id="installBtn" class="menu-item" hidden>📲 Install app</button>
       <button type="button" id="colsBtn" class="menu-item">🗂️ Manage groups</button>
       <button type="button" id="introBtn" class="menu-item">👋 Quick intro</button>
-      <button type="button" id="howBtn2" class="menu-item">❓ How to share to GymShot</button>
+      <button type="button" id="howBtn2" class="menu-item">❓ How to save videos</button>
       <button type="button" id="exportBtn" class="menu-item">⬇️ Export backup (.json)</button>
       <button type="button" id="importBtn" class="menu-item">⬆️ Import backup</button>
       <input type="file" id="importFile" accept="application/json,.json" hidden>
@@ -139,7 +142,7 @@
   <dialog id="colsDlg">
     <form method="dialog">
       <h2>Your groups</h2>
-      <p class="muted">Keep gym moves, recipes, funny videos and more apart. Each group has its own tags.</p>
+      <p class="muted">Keep workouts, beauty, recipes, date spots and more apart. Each group has its own tags.</p>
       <div id="colsList" class="colslist"></div>
       <h3>Add a group</h3>
       <div class="chips selectable" id="colTemplates"></div>
@@ -148,16 +151,16 @@
   </dialog>
 
   <!-- First-run intro -->
-  <dialog id="introDlg" class="intro" aria-label="Welcome to GymShot">
+  <dialog id="introDlg" class="intro" aria-label="Welcome to Later, Babe">
     <div class="slides" id="slides">
       <section class="slide">
-        <div class="hero">💪</div>
-        <h2>Never lose a gym reel again</h2>
-        <p>You spot a great exercise on Instagram or TikTok… then it’s buried in “Saved” or a chat with yourself.</p>
+        <div class="hero">💋</div>
+        <h2>Saw it. Loved it. Later, babe.</h2>
+        <p>The perfect workout, recipe or date spot shows up on Instagram or TikTok… then it’s lost in “Saved” or a chat with yourself.</p>
         <ul class="compare">
           <li class="bad">Lost in Saved / Watch later</li>
-          <li class="bad">Buried in WhatsApp messages</li>
-          <li class="good">One list, sorted by muscle group</li>
+          <li class="bad">Buried in WhatsApp chats</li>
+          <li class="good">Every app, one cute list</li>
         </ul>
       </section>
       <section class="slide">
@@ -166,13 +169,14 @@
         <ol class="steps" id="introSaveSteps"></ol>
       </section>
       <section class="slide">
-        <div class="hero">🏋️</div>
-        <h2>Open it at the gym</h2>
+        <div class="hero">✨</div>
+        <h2>Use it when it’s time</h2>
         <ul class="feature">
-          <li><span>🦵</span><div><b>Tap a muscle group</b> — see everything you saved for today’s session.</div></li>
-          <li><span>▶️</span><div><b>Watch</b> the move, then do it.</div></li>
+          <li><span>🗂️</span><div><b>Tap a group</b>: Fitness, Beauty, Recipes, Date spots, or your own.</div></li>
+          <li><span>▶️</span><div><b>Watch</b> it, then try it.</div></li>
           <li><span>✅</span><div><b>Mark tried</b> — it moves out of your to-try list.</div></li>
-          <li><span>🎲</span><div>Can’t decide? <b>Roll the dice</b> for a random move.</div></li>
+          <li><span>💌</span><div><b>Share</b> the good ones with your besties.</div></li>
+          <li><span>🎲</span><div>Can’t decide? <b>Roll the dice</b> for a random pick.</div></li>
         </ul>
       </section>
       <section class="slide">
@@ -192,18 +196,18 @@
   <!-- Help dialog -->
   <dialog id="helpDlg">
     <form method="dialog">
-      <h2>Sharing to GymShot</h2>
+      <h2>Saving to Later, Babe</h2>
       <h3>Android (Chrome)</h3>
       <ol>
         <li>Open this page in Chrome, tap <b>⋮ → Install app</b> (or "Add to Home screen").</li>
         <li>In Instagram / TikTok / YouTube tap <b>Share</b> on a reel.</li>
-        <li>Pick <b>GymShot</b> in the share sheet (it may be under “More”). Done — tag it and save.</li>
+        <li>Pick <b>Later, Babe</b> in the share sheet (it may be under “More”). Done — tag it and save.</li>
       </ol>
       <h3>iPhone (Safari)</h3>
       <ol>
         <li>Tap <b>Share → Add to Home Screen</b>.</li>
         <li>iOS doesn't let web apps appear in the share sheet, so in Instagram tap <b>Share → Copy link</b>.</li>
-        <li>Open GymShot, tap <b>Paste</b>, then tap the small <b>Paste</b> bubble iPhone shows.</li>
+        <li>Open Later, Babe, tap <b>Paste</b>, then tap the small <b>Paste</b> bubble iPhone shows.</li>
       </ol>
       <p class="muted">Your saves live only on this device. Use <b>Export backup</b> now and then.</p>
       <div class="dlg-actions"><button value="close" class="primary">Got it</button></div>
