@@ -1,16 +1,16 @@
-# GymShot
+# Later, Babe
 
-Save gym reels and videos you want to try later — no more "watch later" lists or sending links to yourself on WhatsApp.
+*Saw it. Loved it. Later, babe.* Save the workouts, beauty tips, recipes and date spots you find on Instagram, TikTok, YouTube and Facebook in one list, so you can try them later. No more "watch later" lists or sending links to yourself on WhatsApp.
 
-GymShot is an installable web app (PWA). On Android it shows up in the **Share** menu of Instagram, TikTok, YouTube, etc., so saving a reel takes two taps. Everything is stored on your phone (no account, no server).
+Later, Babe (formerly GymShot) is an installable web app (PWA). On Android it shows up in the **Share** menu of Instagram, TikTok, YouTube, etc., so saving a reel takes two taps. Everything is stored on your phone (no account, no server). Storage keys still use the old `gymshot.` prefix so existing saves carry over.
 
 ## Features
 - **Share straight from Instagram / TikTok / YouTube** (Android, via the Web Share Target API)
 - Paste-a-link quick add (works everywhere, including iPhone)
 - TikTok, YouTube, Instagram and Facebook links get their cover image and title automatically (TikTok/YouTube oEmbed; Instagram via the `api/ig` Vercel function reading Instagram's public embed page; Facebook via `api/fb`, which finds the video in Facebook's public embed player so the app can capture a frame from it)
 - Attach a screenshot of the reel so you can spot it at a glance (stored on-device, compressed)
-- **Groups** for any topic: Gym, Cooking, Funny, or your own (each with its own tags); manage them in ⋯ → Manage groups
-- Tag by muscle group (Chest, Back, Legs, …), add notes (sets, reps, cues)
+- **Groups** for any topic: Fitness, Beauty, Recipes, Date spots, or your own (each with its own tags); manage them in ⋯ → Manage groups
+- Tag each save (Abs, Glutes, Pilates, Skincare, Brunch, …) and add notes
 - Filter: **To try / Tried / Favorites**, plus search
 - Quick 4-step intro on first launch (why it helps + how to save on your phone); reopen via ⋯ → Quick intro
 - **Share** any saved video (phone share sheet, or copies the link)
@@ -35,10 +35,13 @@ GymShot is an installable web app (PWA). On Android it shows up in the **Share**
 3. Live at `https://<project>.vercel.app`; every push to `main` redeploys. `vercel.json` keeps the service worker uncached.
 
 ## Install on your phone
-- **Android (Chrome):** open the site → ⋮ → **Install app**. Then in Instagram tap **Share → GymShot**.
-- **iPhone (Safari):** Share → **Add to Home Screen**. iOS doesn't allow web apps in the share sheet, so use **Copy link** in Instagram, then open GymShot and tap **Paste** (iOS shows a small Paste bubble to confirm).
+- **Android (Chrome):** open the site → ⋮ → **Install app**. Then in Instagram tap **Share → Later, Babe**.
+- **iPhone (Safari):** Share → **Add to Home Screen**. iOS doesn't allow web apps in the share sheet, so use **Copy link** in Instagram, then open Later, Babe and tap **Paste** (iOS shows a small Paste bubble to confirm).
 
 ## Run locally
 ```sh
 npx http-server -c-1 .
 ```
+
+## Credits
+Logo font: [Shrikhand](https://fonts.google.com/specimen/Shrikhand) by Jonny Pinhorn, SIL Open Font License 1.1 (self-hosted in `fonts/`).
