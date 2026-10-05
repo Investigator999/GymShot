@@ -5,12 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Later, Babe</title>
   <meta name="description" content="Save reels and videos from Instagram, TikTok, YouTube and Facebook in one place, to try later.">
-  <meta name="theme-color" content="#fff4ef" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#1d0b14" media="(prefers-color-scheme: dark)">
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <meta name="apple-mobile-web-app-title" content="Later, Babe">
+  <meta name="theme-color" id="themeLight" content="#fff4ef" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" id="themeDark" content="#1d0b14" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" id="manifestLink" href="manifest.webmanifest">
+  <link rel="icon" id="iconLink" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" id="touchIconLink" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-title" id="appTitle" content="Later, Babe">
+  <script>
+    // Apply the saved look before the first paint (GymShot or Later, Babe); app.js does the rest.
+    try { if (localStorage.getItem('gymshot.brand') === 'gym') document.documentElement.dataset.brand = 'gym'; } catch (e) {}
+  </script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="preload" href="fonts/shrikhand-latin.woff2" as="font" type="font/woff2" crossorigin>
@@ -19,8 +23,8 @@
 <body>
   <header class="top">
     <div class="brand">
-      <img src="icons/icon.svg" alt="" width="32" height="32">
-      <h1>Later, Babe</h1>
+      <img src="icons/icon.svg" id="brandLogo" alt="" width="32" height="32">
+      <h1 class="bname">Later, Babe</h1>
     </div>
     <div class="top-actions">
       <button id="randomBtn" class="icon-btn" title="Pick something to try" aria-label="Pick something to try">🎲</button>
@@ -65,9 +69,9 @@
     <ul id="list" class="list"></ul>
 
     <div id="empty" class="empty" hidden>
-      <div class="empty-emoji">💋</div>
-      <h2>Nothing saved yet, babe</h2>
-      <p>Share a reel or video to <b>Later, Babe</b> from Instagram, TikTok, YouTube or Facebook, or paste a link above.</p>
+      <div class="empty-emoji" data-copy="emptyEmoji">💋</div>
+      <h2 data-copy="emptyTitle">Nothing saved yet, babe</h2>
+      <p>Share a reel or video to <b><span class="bname">Later, Babe</span></b> from Instagram, TikTok, YouTube or Facebook, or paste a link above.</p>
       <div class="empty-actions">
         <button id="introBtn2" class="primary">Watch the quick intro</button>
         <button id="howBtn" class="ghost">How do I save a video?</button>
@@ -83,7 +87,7 @@
         <input name="url" type="url" required>
       </label>
       <label>Title
-        <input name="title" type="text" placeholder="e.g. 10-min booty burn">
+        <input name="title" type="text" id="titleInput" placeholder="e.g. 10-min booty burn">
       </label>
       <fieldset>
         <legend>Screenshot <span class="muted">(helps you spot it later)</span></legend>
@@ -129,6 +133,7 @@
       <h2>Menu</h2>
       <button type="button" id="installBtn" class="menu-item" hidden>📲 Install app</button>
       <button type="button" id="colsBtn" class="menu-item">🗂️ Manage groups</button>
+      <button type="button" id="styleBtn" class="menu-item">🎨 Change style (GymShot / Later, Babe)</button>
       <button type="button" id="introBtn" class="menu-item">👋 Quick intro</button>
       <button type="button" id="howBtn2" class="menu-item">❓ How to save videos</button>
       <button type="button" id="exportBtn" class="menu-item">⬇️ Export backup (.json)</button>
@@ -150,17 +155,37 @@
     </form>
   </dialog>
 
+  <!-- Pick a look: same app, two styles -->
+  <dialog id="styleDlg" class="style-dlg" aria-labelledby="styleTitle">
+    <h2 id="styleTitle" tabindex="-1" autofocus>Pick your style</h2>
+    <p class="muted">Same app, two looks. You can switch anytime in ⋯.</p>
+    <div class="style-opts">
+      <button type="button" class="style-opt gym" data-brand="gym">
+        <img src="icons/gym-icon.svg" alt="" width="56" height="56">
+        <span class="sn">GymShot</span>
+        <span class="st">Bold, dark &amp; lime. Built for gym reels.</span>
+        <span class="sg">💪 Gym · 🍳 Cooking · 😂 Funny</span>
+      </button>
+      <button type="button" class="style-opt babe" data-brand="babe">
+        <img src="icons/icon.svg" alt="" width="56" height="56">
+        <span class="sn">Later, Babe</span>
+        <span class="st">Pink, cute &amp; fun. Saw it, loved it, later babe.</span>
+        <span class="sg">🧘‍♀️ Fitness · 💄 Beauty · 🍸 Date spots</span>
+      </button>
+    </div>
+  </dialog>
+
   <!-- First-run intro -->
-  <dialog id="introDlg" class="intro" aria-label="Welcome to Later, Babe">
+  <dialog id="introDlg" class="intro" aria-label="Welcome">
     <div class="slides" id="slides">
       <section class="slide">
-        <div class="hero">💋</div>
-        <h2>Saw it. Loved it. Later, babe.</h2>
-        <p>The perfect workout, recipe or date spot shows up on Instagram or TikTok… then it’s lost in “Saved” or a chat with yourself.</p>
+        <div class="hero" data-copy="hero1">💋</div>
+        <h2 data-copy="title1">Saw it. Loved it. Later, babe.</h2>
+        <p data-copy="p1">The perfect workout, recipe or date spot shows up on Instagram or TikTok… then it’s lost in “Saved” or a chat with yourself.</p>
         <ul class="compare">
           <li class="bad">Lost in Saved / Watch later</li>
           <li class="bad">Buried in WhatsApp chats</li>
-          <li class="good">Every app, one cute list</li>
+          <li class="good" data-copy="good1">Every app, one cute list</li>
         </ul>
       </section>
       <section class="slide">
@@ -169,10 +194,10 @@
         <ol class="steps" id="introSaveSteps"></ol>
       </section>
       <section class="slide">
-        <div class="hero">✨</div>
-        <h2>Use it when it’s time</h2>
+        <div class="hero" data-copy="hero3">✨</div>
+        <h2 data-copy="title3">Use it when it’s time</h2>
         <ul class="feature">
-          <li><span>🗂️</span><div><b>Tap a group</b>: Fitness, Beauty, Recipes, Date spots, or your own.</div></li>
+          <li><span>🗂️</span><div><b>Tap a group</b>: <span data-copy="groups">Fitness, Beauty, Recipes, Date spots, or your own.</span></div></li>
           <li><span>▶️</span><div><b>Watch</b> it, then try it.</div></li>
           <li><span>✅</span><div><b>Mark tried</b> — it moves out of your to-try list.</div></li>
           <li><span>💌</span><div><b>Share</b> the good ones with your besties.</div></li>
@@ -196,18 +221,18 @@
   <!-- Help dialog -->
   <dialog id="helpDlg">
     <form method="dialog">
-      <h2>Saving to Later, Babe</h2>
+      <h2>Saving to <span class="bname">Later, Babe</span></h2>
       <h3>Android (Chrome)</h3>
       <ol>
         <li>Open this page in Chrome, tap <b>⋮ → Install app</b> (or "Add to Home screen").</li>
         <li>In Instagram / TikTok / YouTube tap <b>Share</b> on a reel.</li>
-        <li>Pick <b>Later, Babe</b> in the share sheet (it may be under “More”). Done — tag it and save.</li>
+        <li>Pick <b><span class="bname">Later, Babe</span></b> in the share sheet (it may be under “More”). Done — tag it and save.</li>
       </ol>
       <h3>iPhone (Safari)</h3>
       <ol>
         <li>Tap <b>Share → Add to Home Screen</b>.</li>
         <li>iOS doesn't let web apps appear in the share sheet, so in Instagram tap <b>Share → Copy link</b>.</li>
-        <li>Open Later, Babe, tap <b>Paste</b>, then tap the small <b>Paste</b> bubble iPhone shows.</li>
+        <li>Open <span class="bname">Later, Babe</span>, tap <b>Paste</b>, then tap the small <b>Paste</b> bubble iPhone shows.</li>
       </ol>
       <p class="muted">Your saves live only on this device. Use <b>Export backup</b> now and then.</p>
       <div class="dlg-actions"><button value="close" class="primary">Got it</button></div>

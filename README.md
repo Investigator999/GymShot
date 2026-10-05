@@ -2,7 +2,7 @@
 
 *Saw it. Loved it. Later, babe.* Save the workouts, beauty tips, recipes and date spots you find on Instagram, TikTok, YouTube and Facebook in one list, so you can try them later. No more "watch later" lists or sending links to yourself on WhatsApp.
 
-Later, Babe (formerly GymShot) is an installable web app (PWA). On Android it shows up in the **Share** menu of Instagram, TikTok, YouTube, etc., so saving a reel takes two taps. Everything is stored on your phone (no account, no server). Storage keys still use the old `gymshot.` prefix so existing saves carry over.
+The app comes in two looks people pick on first launch (and can switch in ⋯ → Change style): **GymShot** (dark + lime, gym groups) and **Later, Babe** (pink + cream, fitness/beauty/recipes/date-spot groups). On a `laterbabe` domain it opens as Later, Babe without asking. It is an installable web app (PWA). On Android it shows up in the **Share** menu of Instagram, TikTok, YouTube, etc., so saving a reel takes two taps. Everything is stored on your phone (no account, no server). Storage keys still use the old `gymshot.` prefix so existing saves carry over.
 
 ## Features
 - **Share straight from Instagram / TikTok / YouTube** (Android, via the Web Share Target API)

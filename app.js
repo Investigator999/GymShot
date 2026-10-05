@@ -3,23 +3,63 @@
 const STORE_KEY = 'gymshot.items.v1';
 const COLS_KEY = 'gymshot.collections.v1';
 const VIEW_COL_KEY = 'gymshot.view.col';
+const BRAND_KEY = 'gymshot.brand';
+const GYM_TAGS = ['Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Glutes', 'Core', 'Full body', 'Cardio', 'Mobility'];
 const FIT_TAGS = ['Abs', 'Glutes', 'Legs', 'Arms', 'Full body', 'Pilates', 'Yoga', 'Cardio', 'Stretching'];
-// Groups ("collections") let one app hold workouts, beauty, recipes and anything else.
-// Ids stay stable (the fitness group is still 'gym') so older saves keep their group.
-const DEFAULT_COLS = [
-  { id: 'gym', name: 'Fitness', emoji: '🧘‍♀️', tags: FIT_TAGS },
-  { id: 'beauty', name: 'Beauty', emoji: '💄', tags: ['Makeup', 'Skincare', 'Hair', 'Nails', 'Outfits'] },
-  { id: 'cooking', name: 'Recipes', emoji: '🍳', tags: ['Breakfast', 'Lunch', 'Dinner', 'Dessert', 'Healthy', 'Quick'] },
-  { id: 'restaurants', name: 'Date spots', emoji: '🍸', tags: ['Date night', 'Brunch', 'Cafés', 'Cheap eats', 'Must try'] },
-];
-const COL_TEMPLATES = [
-  ...DEFAULT_COLS,
-  { id: 'funny', name: 'Funny', emoji: '😂', tags: ['Pets', 'Kids', 'Pranks', 'Memes'] },
-  { id: 'travel', name: 'Travel', emoji: '✈️', tags: ['Places', 'Hotels', 'Food spots', 'Tips'] },
-  { id: 'home', name: 'Home & DIY', emoji: '🏠', tags: ['Decor', 'Cleaning', 'Organizing', 'Repairs'] },
-  { id: 'learning', name: 'Learning', emoji: '📚', tags: ['Language', 'Tech', 'Money', 'Life hacks'] },
-  { id: 'kids', name: 'Kids', emoji: '🧸', tags: ['Activities', 'Crafts', 'Parenting', 'Food'] },
-];
+// Groups ("collections") let one app hold workouts, recipes, funny videos and anything else.
+// Ids stay stable across both looks (the workout group is always 'gym') so saves keep their group.
+const COOKING = { id: 'cooking', name: 'Cooking', emoji: '🍳', tags: ['Breakfast', 'Lunch', 'Dinner', 'Dessert', 'Healthy', 'Quick'] };
+const FUNNY = { id: 'funny', name: 'Funny', emoji: '😂', tags: ['Pets', 'Kids', 'Pranks', 'Memes'] };
+const BEAUTY = { id: 'beauty', name: 'Beauty', emoji: '💄', tags: ['Makeup', 'Skincare', 'Hair', 'Nails', 'Outfits'] };
+const RESTAURANTS = { id: 'restaurants', name: 'Restaurants', emoji: '🍽️', tags: ['Date night', 'Brunch', 'Cafés', 'Cheap eats', 'Must try'] };
+
+// The same app in two looks: GymShot (dark + lime) and Later, Babe (pink + cream).
+// Everyone picks one on first launch and can switch in ⋯ → Change style.
+const BRANDS = {
+  gym: {
+    name: 'GymShot', theme: ['#f5f6f8', '#0f1115'], manifest: 'manifest-gym.webmanifest',
+    icon: 'icons/gym-icon.svg', touchIcon: 'icons/gym-apple-touch-icon.png', backup: 'gymshot',
+    cols: [{ id: 'gym', name: 'Gym', emoji: '💪', tags: GYM_TAGS }, COOKING, FUNNY, RESTAURANTS],
+    copy: {
+      emptyEmoji: '🏋️', emptyTitle: 'No saved moves yet', hero1: '💪', title1: 'Never lose a gym reel again',
+      p1: 'You spot a great exercise or recipe on Instagram or TikTok… then it’s buried in “Saved” or a chat with yourself.',
+      good1: 'Every app, one list', hero3: '🏋️', title3: 'Open it at the gym',
+      groups: 'Gym, Cooking, Funny, Restaurants, or your own.', titleHint: 'e.g. Cable lateral raise variation',
+      nothingSaved: 'Save some moves first', fitLegend: 'Muscle group',
+    },
+  },
+  babe: {
+    name: 'Later, Babe', theme: ['#fff4ef', '#1d0b14'], manifest: 'manifest.webmanifest',
+    icon: 'icons/icon.svg', touchIcon: 'icons/apple-touch-icon.png', backup: 'laterbabe',
+    cols: [{ id: 'gym', name: 'Fitness', emoji: '🧘‍♀️', tags: FIT_TAGS }, BEAUTY, { ...COOKING, name: 'Recipes' },
+      { ...RESTAURANTS, name: 'Date spots', emoji: '🍸' }],
+    copy: {
+      emptyEmoji: '💋', emptyTitle: 'Nothing saved yet, babe', hero1: '💋', title1: 'Saw it. Loved it. Later, babe.',
+      p1: 'The perfect workout, recipe or date spot shows up on Instagram or TikTok… then it’s lost in “Saved” or a chat with yourself.',
+      good1: 'Every app, one cute list', hero3: '✨', title3: 'Use it when it’s time',
+      groups: 'Fitness, Beauty, Recipes, Date spots, or your own.', titleHint: 'e.g. 10-min booty burn',
+      nothingSaved: 'Save something first, babe', fitLegend: 'Focus',
+    },
+  },
+};
+function storedBrand() {
+  try { const b = localStorage.getItem(BRAND_KEY); return BRANDS[b] ? b : null; } catch { return null; }
+}
+// The domain decides when nothing is saved yet (laterbabe.* opens pink); null means "ask".
+function initialBrand() {
+  return storedBrand() || (/laterbabe/.test(location.hostname) ? 'babe' : null);
+}
+let brandId = initialBrand() || 'babe';
+const brand = () => BRANDS[brandId];
+const colTemplates = () => {
+  const extra = [FUNNY, BEAUTY, RESTAURANTS, COOKING, BRANDS.gym.cols[0],
+    { id: 'travel', name: 'Travel', emoji: '✈️', tags: ['Places', 'Hotels', 'Food spots', 'Tips'] },
+    { id: 'home', name: 'Home & DIY', emoji: '🏠', tags: ['Decor', 'Cleaning', 'Organizing', 'Repairs'] },
+    { id: 'learning', name: 'Learning', emoji: '📚', tags: ['Language', 'Tech', 'Money', 'Life hacks'] },
+    { id: 'kids', name: 'Kids', emoji: '🧸', tags: ['Activities', 'Crafts', 'Parenting', 'Food'] }];
+  const seen = new Set();
+  return [...brand().cols, ...extra].filter((c) => !seen.has(c.id) && seen.add(c.id));
+};
 
 const PLATFORMS = [
   { id: 'instagram', name: 'Instagram', icon: '📸', test: /(^|\.)instagram\.com$|(^|\.)instagr\.am$/ },
@@ -59,7 +99,7 @@ function loadCols() {
         tags: Array.isArray(c.tags) ? c.tags.filter((t) => typeof t === 'string' && t.trim()) : [] }));
     }
   } catch { /* fall through to defaults */ }
-  return DEFAULT_COLS.map(cloneCol);
+  return brand().cols.map(cloneCol);
 }
 function persistCols() {
   try { localStorage.setItem(COLS_KEY, JSON.stringify(collections)); } catch { /* ignore */ }
@@ -354,7 +394,7 @@ function update(id, patch) {
 
 // Share a saved video through the phone's share sheet; fall back to copying the link.
 async function shareItem(it) {
-  const text = `${it.title}${it.notes ? `\n${it.notes}` : ''}\n\nSaved with Later, Babe · ${location.host}`;
+  const text = `${it.title}${it.notes ? `\n${it.notes}` : ''}\n\nSaved with ${brand().name} · ${location.host}`;
   if (navigator.share) {
     try {
       await navigator.share({ title: it.title, text, url: it.url });
@@ -572,7 +612,7 @@ function renderEditorGroups() {
     return b;
   }));
   const col = colById(editorCol);
-  $('#tagLegend').textContent = col.id === 'gym' ? 'Focus' : 'Tags';
+  $('#tagLegend').textContent = col.id === 'gym' ? brand().copy.fitLegend : 'Tags';
   $('#editTitle').textContent = editingId ? 'Edit' : `Save to ${col.name}`;
   $('#editForm').elements.notes.placeholder = NOTE_HINTS[col.id] || 'Notes, tips, anything to remember…';
   $('#editTags').replaceChildren(...col.tags.map((t) => {
@@ -799,7 +839,7 @@ $('#randomBtn').addEventListener('click', () => {
   let pool = filtered().filter((i) => !i.tried);
   if (!pool.length) pool = items.filter((i) => !i.tried && itemCol(i) === view.col && (!view.tag || (i.tags || []).includes(view.tag)));
   if (!pool.length) {
-    toast(items.length ? 'Nothing left to try here — nice work!' : 'Save something first, babe');
+    toast(items.length ? 'Nothing left to try here — nice work!' : brand().copy.nothingSaved);
     return;
   }
   const pick = pool[Math.floor(Math.random() * pool.length)];
@@ -821,9 +861,9 @@ const isInstalled = matchMedia('(display-mode: standalone)').matches || navigato
 function buildIntro() {
   const steps = isIOS
     ? ['In Instagram / TikTok, open the reel you like.', 'Tap <b>Share → Copy link</b>.',
-       'In Later, Babe tap <b>Paste</b>, then the little <b>Paste</b> bubble.', 'The cover fills in by itself. Pick a group, <b>Save</b>.']
+       `In ${brand().name} tap <b>Paste</b>, then the little <b>Paste</b> bubble.`, 'The cover fills in by itself. Pick a group, <b>Save</b>.']
     : isAndroid
-      ? ['In Instagram / TikTok / YouTube tap <b>Share</b> on a reel.', 'Choose <b>Later, Babe</b> (look under “More” the first time).',
+      ? ['In Instagram / TikTok / YouTube tap <b>Share</b> on a reel.', `Choose <b>${brand().name}</b> (look under “More” the first time).`,
          'Pick a group, add a screenshot if you like.', 'Tap <b>Save</b> — done!']
       : ['Copy the link of a reel or video.', 'Paste it into the link box and tap <b>Add</b>.',
          'Pick a group, add a screenshot and notes.', 'Tap <b>Save</b> — done!'];
@@ -833,8 +873,8 @@ function buildIntro() {
   const tip = $('#introInstallTip');
   if (!isInstalled && (isIOS || isAndroid)) {
     tip.innerHTML = isIOS
-      ? '📌 Tip: in Safari tap <b>Share → Add to Home Screen</b> to open Later, Babe like an app.'
-      : '📌 Tip: tap <b>⋮ → Install app</b> so Later, Babe shows up in your Share menu.';
+      ? `📌 Tip: in Safari tap <b>Share → Add to Home Screen</b> to open ${brand().name} like an app.`
+      : `📌 Tip: tap <b>⋮ → Install app</b> so ${brand().name} shows up in your Share menu.`;
     tip.hidden = false;
   }
   const n = document.querySelectorAll('#slides .slide').length;
@@ -890,7 +930,7 @@ $('#exportBtn').addEventListener('click', async () => {
     return s ? { ...it, shot: await blobToDataUrl(s.blob) } : it;
   }));
   const blob = new Blob([JSON.stringify({ app: 'gymshot', version: 3, exportedAt: new Date().toISOString(), collections, items: withShots }, null, 2)], { type: 'application/json' });
-  const a = el('a', { href: URL.createObjectURL(blob), download: `laterbabe-backup-${new Date().toISOString().slice(0, 10)}.json` });
+  const a = el('a', { href: URL.createObjectURL(blob), download: `${brand().backup}-backup-${new Date().toISOString().slice(0, 10)}.json` });
   document.body.append(a);
   a.click();
   a.remove();
@@ -985,7 +1025,7 @@ function renderColsDlg() {
   }));
   const have = new Set(collections.map((c) => c.name.toLowerCase()));
   $('#colTemplates').replaceChildren(
-    ...COL_TEMPLATES.filter((t) => !have.has(t.name.toLowerCase())).map((t) => {
+    ...colTemplates().filter((t) => !have.has(t.name.toLowerCase())).map((t) => {
       const b = el('button', { type: 'button', class: 'chip' }, el('span', { class: 'emo' }, t.emoji), ' ' + t.name);
       b.onclick = () => addCol({ ...cloneCol(t), id: newColId(t.name) });
       return b;
@@ -1044,6 +1084,57 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     .catch(() => {});
 }
 
+// ---------- look: GymShot or Later, Babe ----------
+function applyBrand() {
+  const b = brand();
+  document.documentElement.dataset.brand = brandId;
+  document.title = b.name;
+  $('#appTitle').content = b.name;
+  $('#manifestLink').href = b.manifest;
+  $('#iconLink').href = b.icon;
+  $('#touchIconLink').href = b.touchIcon;
+  $('#brandLogo').src = b.icon;
+  $('#themeLight').content = b.theme[0];
+  $('#themeDark').content = b.theme[1];
+  document.querySelectorAll('.bname').forEach((n) => { n.textContent = b.name; });
+  document.querySelectorAll('[data-copy]').forEach((n) => { n.textContent = b.copy[n.dataset.copy]; });
+  $('#titleInput').placeholder = b.copy.titleHint;
+}
+function setBrand(id) {
+  brandId = id;
+  try { localStorage.setItem(BRAND_KEY, id); } catch { /* ignore */ }
+  // Someone who hasn't set anything up yet gets the starter groups of the look they picked.
+  let hasOwnGroups = false;
+  try { hasOwnGroups = !!localStorage.getItem(COLS_KEY); } catch { /* ignore */ }
+  if (!hasOwnGroups && items.length === 0) {
+    collections = brand().cols.map(cloneCol);
+    setViewCol(collections[0].id);
+  } else {
+    // Keep the groups they already use; otherwise the new look's defaults would replace them on reload.
+    persistCols();
+  }
+  applyBrand();
+  render();
+}
+let styleFirstRun = false;
+function openStylePicker(firstRun) {
+  styleFirstRun = firstRun;
+  $('#menuDlg').close();
+  $('#styleDlg').showModal();
+}
+$('#styleDlg').addEventListener('click', (e) => {
+  const opt = e.target.closest('.style-opt');
+  if (!opt) return;
+  setBrand(opt.dataset.brand);
+  $('#styleDlg').close();
+  toast(`Style: ${brand().name}`);
+});
+$('#styleDlg').addEventListener('close', () => {
+  if (styleFirstRun) { styleFirstRun = false; maybeIntro(); }
+});
+$('#styleBtn').addEventListener('click', () => openStylePicker(false));
+
+applyBrand();
 render();
 const sharedIn = location.search.length > 1;
 handleIncomingShare();
@@ -1087,7 +1178,7 @@ function showInAppBanner() {
   // Static strings only, so innerHTML is safe here.
   $('#inappText').innerHTML = isIOS
     ? `Saves made here get lost. Tap <b>⋯</b> in ${IN_APP}’s bar <b>above this page</b>, then <b>Open in ${IN_APP === 'TikTok' ? 'browser' : 'external browser'}</b>. Then in Safari tap <b>Share → Add to Home Screen</b>.`
-    : `Saves made here get lost. Open Later, Babe in <b>${browser}</b> to install it, then it shows up in your Share menu.`;
+    : `Saves made here get lost. Open ${brand().name} in <b>${browser}</b> to install it, then it shows up in your Share menu.`;
   if (isAndroid) {
     $('#inappOpen').hidden = false;
     $('#inappArrow').hidden = true;
@@ -1119,4 +1210,9 @@ showInAppBanner();
 let introSeen = false;
 try { introSeen = !!localStorage.getItem(INTRO_KEY); } catch { /* ignore */ }
 // Inside TikTok/Instagram the banner matters more; the intro shows once they open the real browser.
-if (!introSeen && !sharedIn && !IN_APP && items.length === 0) openIntro();
+function maybeIntro() {
+  if (!introSeen && !sharedIn && !IN_APP && items.length === 0) openIntro();
+}
+// First launch on gymshot.fit: let them pick a look first, then show the intro.
+if (!initialBrand() && !sharedIn && !IN_APP) openStylePicker(true);
+else maybeIntro();

@@ -1,4 +1,6 @@
-/* Later, Babe: hot pink on cream (light), pink on deep plum (dark). */
+/* Two looks for one app, chosen by data-brand on <html>.
+   Later, Babe (default): hot pink on cream, pink on deep plum in dark mode.
+   GymShot: lime on near-black, dark-first. */
 @font-face {
   font-family: "Shrikhand";
   src: url("fonts/shrikhand-latin.woff2") format("woff2");
@@ -30,6 +32,32 @@
     --danger: #ff6b81;
     --border: #4a2338;
     color-scheme: dark;
+  }
+}
+:root[data-brand="gym"] {
+  --bg: #0f1115;
+  --surface: #181b22;
+  --surface-2: #222631;
+  --text: #f1f3f7;
+  --muted: #9aa3b2;
+  --accent: #c6f432;
+  --accent-ink: #0f1115;
+  --danger: #ff6b6b;
+  --border: #2b303c;
+  --radius: 14px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root[data-brand="gym"] {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface-2: #eef0f4;
+    --text: #12151b;
+    --muted: #5d6676;
+    --accent: #5b8c00;
+    --accent-ink: #ffffff;
+    --border: #dde1e8;
+    color-scheme: light;
   }
 }
 
@@ -291,3 +319,27 @@ dialog.intro { padding: 0; overflow: hidden; width: min(440px, calc(100vw - 24px
 @media (prefers-reduced-motion: reduce) { .inapp-arrow { animation: none; } }
 
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* GymShot keeps its original plain, heavy headings */
+[data-brand="gym"] .brand h1 { font: 800 20px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--text); letter-spacing: .3px; }
+[data-brand="gym"] .slide h2, [data-brand="gym"] .empty h2 { font: 800 21px/1.2 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--text); }
+[data-brand="gym"] .brand img { border-radius: 8px; }
+
+/* Style picker: each card shows its own look, whatever the current one is */
+.style-dlg { text-align: center; }
+.style-dlg h2 { font-size: 22px; }
+.style-opts { display: grid; gap: 12px; margin-top: 14px; }
+.style-opt {
+  display: grid; justify-items: center; gap: 6px; padding: 18px 14px; border-radius: 20px;
+  border: 2px solid transparent; text-align: center;
+}
+.style-opt img { border-radius: 14px; }
+.style-opt .sn { font-size: 24px; line-height: 1.1; }
+.style-opt .st { font-size: 14px; }
+.style-opt .sg { font-size: 13px; opacity: .8; }
+.style-opt.gym { background: #0f1115; color: #f1f3f7; border-color: #2b303c; }
+.style-opt.gym .sn { font-weight: 800; color: #c6f432; }
+.style-opt.babe { background: #fff4ef; color: #2b0f1c; border-color: #ffd6e4; }
+.style-opt.babe .sn { font-family: var(--brand-font); color: #ff2e7e; }
+.style-opt:hover, .style-opt:focus-visible { border-color: var(--accent); }
+.style-dlg h2:focus { outline: none; }
