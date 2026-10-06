@@ -553,14 +553,15 @@ async function fetchPreview(url) {
     image = await frameFromVideo(data.video_url);
   }
   const title = cleanCaption(data.title) || (data.author_name ? `@${data.author_name} on ${p.name}` : '');
-  return image || title ? { title, image } : null;
+  const text = [data.title, data.author_name].filter(Boolean).join(' ');
+  return image || title ? { title, image, text } : null;
 }
 
 // The preview for the move currently open in the editor (it keeps going if Save is tapped early).
 let pendingPreview = null;
 
 // ---------- editor ----------
-function openEditor(it, prefill = {}) {
+function openEditor(it, prefill = {}, sharedText = '') {
   editingId = it ? it.id : null;
   const f = $('#editForm');
   const data = it || { url: '', title: '', notes: '', tags: [], tried: false, fav: false, ...prefill };
@@ -586,11 +587,17 @@ function openEditor(it, prefill = {}) {
       if (prev.image && draftShot === undefined) useShotFile(prev.image);
       const titleInput = f.elements.title;
       if (prev.title && titleInput.value.trim() === defaultTitle(data.url)) titleInput.value = prev.title;
+      suggestGroup(`${sharedText} ${prev.text || ''}`);
     });
   }
   editorCol = it ? itemCol(it) : view.col;
   editorTags = new Set(data.tags || []);
+  editorColTouched = !!it;
+  editorTagsTouched = !!it;
+  $('#groupHint').hidden = true;
+  $('#groupOffer').hidden = true;
   renderEditorGroups();
+  if (!it) suggestGroup(sharedText);
   $('#editDlg').showModal();
   if (!it) setTimeout(() => f.elements.title.select(), 50);
 }
@@ -604,11 +611,105 @@ const NOTE_HINTS = {
 };
 let editorCol = null;
 let editorTags = new Set();
+let editorColTouched = false; // the person picked a group themselves, so stop suggesting
+let editorTagsTouched = false;
+
+// ---------- group suggestion ----------
+// Words, hashtags and emojis that point to a group, keyed by group id. Custom groups also match
+// on their own name and tags. Latin words match whole words (so "pasta" ≠ "pastel"); emojis and
+// Arabic match anywhere.
+const GROUP_HINTS = {
+  gym: ['workout', 'workouts', 'exercise', 'exercises', 'gym', 'gymtok', 'fittok', 'fitness', 'reps', 'squat', 'squats',
+    'deadlift', 'deadlifts', 'bench press', 'lunge', 'lunges', 'glute', 'glutes', 'abs', 'core', 'cardio', 'hiit', 'pilates',
+    'yoga', 'stretch', 'stretching', 'mobility', 'legday', 'leg day', 'booty', 'biceps', 'triceps', 'shoulders', 'dumbbell',
+    'dumbbells', 'kettlebell', 'barbell', 'calisthenics', 'pushup', 'pushups', 'push-ups', 'pullup', 'pull-ups', 'plank',
+    'burpees', 'muscle', 'gains', 'personal trainer', 'hypertrophy', '💪', '🏋', '🧘', '🏃', '🍑', 'تمرين', 'تمارين', 'جيم', 'رياضة', 'عضلات'],
+  cooking: ['recipe', 'recipes', 'cook', 'cooking', 'bake', 'baking', 'dinner', 'lunch', 'breakfast', 'dessert', 'desserts',
+    'meal', 'meals', 'mealprep', 'meal prep', 'pasta', 'chicken', 'beef', 'salad', 'soup', 'cake', 'cookies', 'bread',
+    'sauce', 'oven', 'airfryer', 'air fryer', 'ingredients', 'kitchen', 'foodtok', 'easyrecipe', 'easy recipe', 'homemade',
+    'snack', 'snacks', '🍝', '🍕', '🍳', '🥗', '🍰', '🍪', '🥘', '🍲', '🍜', '🧁', '🥞', '🥙', 'وصفة', 'وصفات', 'طبخ', 'حلويات', 'مطبخ'],
+  restaurants: ['restaurant', 'restaurants', 'cafe', 'café', 'cafes', 'coffee shop', 'brunch spot', 'foodie', 'menu',
+    'rooftop', 'bistro', 'steakhouse', 'date night', 'date spot', 'hidden gem', 'places to eat', 'where to eat',
+    'must try', 'must-try', 'reservation', 'food spot', 'food spots', '🍽', 'مطعم', 'مطاعم', 'كافيه', 'كافيهات'],
+  funny: ['funny', 'lol', 'lmao', 'comedy', 'prank', 'pranks', 'meme', 'memes', 'joke', 'jokes', 'hilarious', 'fail',
+    'fails', 'humor', 'humour', '😂', '🤣', '😆', '😹', 'ضحك', 'مضحك', 'هههه', 'كوميدي'],
+  beauty: ['makeup', 'make-up', 'skincare', 'skin care', 'hair', 'hairstyle', 'hairstyles', 'nails', 'nail art', 'nailart',
+    'manicure', 'lipstick', 'lashes', 'mascara', 'foundation', 'contour', 'serum', 'outfit', 'outfits', 'fashion', 'grwm',
+    'beauty', 'glow up', 'glowup', '💄', '💅', '👗', '💇', 'مكياج', 'بشرة', 'سكين كير', 'اظافر', 'أظافر'],
+  travel: ['travel', 'traveling', 'travelling', 'trip', 'vacation', 'holiday', 'hotel', 'hotels', 'flight', 'beach',
+    'island', 'itinerary', 'traveltok', '✈️', '🏝', '🗺', 'سفر', 'رحلة', 'فندق'],
+  home: ['diy', 'decor', 'home decor', 'cleaning', 'cleantok', 'organize', 'organizing', 'organization', 'makeover',
+    'interior', 'home hack', 'renovation', '🏠', '🧹', 'ديكور', 'تنظيف'],
+  learning: ['learn', 'tutorial', 'how to', 'money', 'finance', 'investing', 'language', 'coding', 'study', 'studytok', '📚'],
+  kids: ['kids', 'toddler', 'toddlers', 'baby', 'parenting', 'momlife', 'mom hack', 'crafts', 'kids activities', '👶', '🧸', 'أطفال', 'اطفال'],
+};
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function hits(text, word) {
+  const w = word.toLowerCase();
+  // Latin words: whole-word match, allowing a hashtag in front (#legday). Others: anywhere.
+  if (/^[a-z0-9 '\-é]+$/.test(w)) return new RegExp(`(^|[^\\p{L}\\p{N}])#?${escapeRe(w)}($|[^\\p{L}\\p{N}])`, 'u').test(text);
+  return text.includes(w);
+}
+function groupScore(col, text) {
+  const words = new Set([...(GROUP_HINTS[col.id] || []), col.name, ...col.tags].map((w) => w.toLowerCase()).filter((w) => w.length > 1));
+  let n = 0;
+  words.forEach((w) => { if (hits(text, w)) n++; });
+  return n;
+}
+// Pick the best-matching group for a caption and tick tags it mentions; leaves anything the
+// person already chose alone.
+function suggestGroup(rawText) {
+  if (editingId) return;
+  const text = String(rawText || '').toLowerCase();
+  if (!text.trim()) return;
+  if (!editorColTouched) {
+    let best = null, bestN = 0;
+    collections.forEach((c) => {
+      const n = groupScore(c, text);
+      if (n > bestN || (n === bestN && n > 0 && c.id === editorCol)) { best = c; bestN = n; }
+    });
+    if (best && bestN > 0) {
+      if (best.id !== editorCol) { editorCol = best.id; editorTags = new Set(); }
+      $('#groupHint').hidden = false;
+    }
+    // A starter group they don't have yet fits better (e.g. nails → Beauty): offer to add it.
+    const have = new Set(collections.flatMap((c) => [c.id, c.name.toLowerCase()]));
+    let offer = null, offerN = bestN;
+    colTemplates().filter((t) => !have.has(t.id) && !have.has(t.name.toLowerCase())).forEach((t) => {
+      const n = groupScore(t, text);
+      if (n > offerN) { offer = t; offerN = n; }
+    });
+    const btn = $('#groupOffer');
+    btn.hidden = !offer;
+    if (offer) {
+      btn.textContent = `+ Add a ${offer.emoji} ${offer.name} group for this`;
+      btn.onclick = () => {
+        const c = { ...cloneCol(offer), id: collections.some((x) => x.id === offer.id) ? newColId(offer.name) : offer.id };
+        collections.push(c);
+        persistCols();
+        editorCol = c.id;
+        editorColTouched = true;
+        editorTags = new Set();
+        btn.hidden = true;
+        $('#groupHint').hidden = true;
+        suggestGroup(text); // tick its matching tags
+        render();
+      };
+    }
+  }
+  if (!editorTagsTouched) {
+    colById(editorCol).tags.forEach((t) => {
+      const stem = t.toLowerCase().replace(/s$/, '');
+      if (hits(text, t) || (stem.length > 2 && hits(text, stem))) editorTags.add(t);
+    });
+  }
+  renderEditorGroups();
+}
 
 function renderEditorGroups() {
   $('#editCols').replaceChildren(...collections.map((c) => {
     const b = el('button', { type: 'button', class: 'chip' + (c.id === editorCol ? ' on' : '') }, el('span', { class: 'emo' }, c.emoji), ' ' + c.name);
-    b.onclick = () => { editorCol = c.id; renderEditorGroups(); };
+    b.onclick = () => { editorCol = c.id; editorColTouched = true; $('#groupHint').hidden = true; $('#groupOffer').hidden = true; renderEditorGroups(); };
     return b;
   }));
   const col = colById(editorCol);
@@ -617,7 +718,7 @@ function renderEditorGroups() {
   $('#editForm').elements.notes.placeholder = NOTE_HINTS[col.id] || 'Notes, tips, anything to remember…';
   $('#editTags').replaceChildren(...col.tags.map((t) => {
     const b = el('button', { type: 'button', class: 'chip' + (editorTags.has(t) ? ' on' : '') }, t);
-    b.onclick = () => { editorTags.has(t) ? editorTags.delete(t) : editorTags.add(t); b.classList.toggle('on'); };
+    b.onclick = () => { editorTags.has(t) ? editorTags.delete(t) : editorTags.add(t); editorTagsTouched = true; b.classList.toggle('on'); };
     return b;
   }));
   $('#newTag').value = '';
@@ -745,7 +846,7 @@ function startAdd(rawUrl, title = '', text = '') {
     toast('Already in your list', 'Edit', () => openEditor(dup));
     return;
   }
-  openEditor(null, { url, title: titleFromShare(title, text, url) });
+  openEditor(null, { url, title: titleFromShare(title, text, url) }, [title, text].join(' '));
 }
 
 // ---------- share target / deep link ----------

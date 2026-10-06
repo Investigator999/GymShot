@@ -223,6 +223,8 @@ legend { font-size: 14px; color: var(--muted); margin-bottom: 6px; padding: 0; }
 .shot-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .shot-actions .small { width: 100%; margin: 0; font-size: 12px; }
 .ghost.danger { color: var(--danger); }
+.group-offer { margin-top: 8px; padding: 7px 12px; border-radius: 999px; border: 1px dashed var(--accent); background: transparent; color: var(--accent); font-weight: 700; font-size: 14px; }
+.group-hint { margin-left: 6px; font-size: 12px; font-weight: 700; color: var(--accent); }
 
 .empty-actions { display: flex; flex-direction: column; gap: 8px; align-items: center; }
 

@@ -10,6 +10,7 @@ The app comes in two looks people pick on first launch (and can switch in ⋯ �
 - TikTok, YouTube, Instagram and Facebook links get their cover image and title automatically (TikTok/YouTube oEmbed; Instagram via the `api/ig` Vercel function reading Instagram's public embed page; Facebook via `api/fb`, which finds the video in Facebook's public embed player so the app can capture a frame from it)
 - Attach a screenshot of the reel so you can spot it at a glance (stored on-device, compressed)
 - **Groups** for any topic: Fitness, Beauty, Recipes, Date spots, or your own (each with its own tags); manage them in ⋯ → Manage groups
+- **Smart group pick:** after you paste a link, the caption (words, hashtags, emojis, some Arabic) picks the matching group and ticks matching tags; if a starter group you don't have fits better (e.g. Beauty for nails), it offers to add it
 - Tag each save (Abs, Glutes, Pilates, Skincare, Brunch, …) and add notes
 - Filter: **To try / Tried / Favorites**, plus search
 - Quick 4-step intro on first launch (why it helps + how to save on your phone); reopen via ⋯ → Quick intro
