@@ -1,8 +1,8 @@
 {
-  "name": "GymShot – Saved Gym Moves",
+  "name": "GymShot",
   "short_name": "GymShot",
   "description": "Save gym reels and videos from Instagram, TikTok, YouTube and Facebook to try later.",
-  "id": "./",
+  "id": "./?app=gymshot",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

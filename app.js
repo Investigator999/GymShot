@@ -1234,6 +1234,7 @@ function applyBrand() {
   document.documentElement.dataset.brand = brandId;
   document.title = b.name;
   $('#appTitle').content = b.name;
+  $('#appName').content = b.name;
   $('#manifestLink').href = b.manifest;
   $('#iconLink').href = b.icon;
   $('#touchIconLink').href = b.touchIcon;
