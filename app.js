@@ -1247,7 +1247,6 @@ function applyBrand() {
 function setBrand(id) {
   brandId = id;
   try { localStorage.setItem(BRAND_KEY, id); } catch { /* ignore */ }
-  rememberBrandCookie();
   // Someone who hasn't set anything up yet gets the starter groups of the look they picked.
   let hasOwnGroups = false;
   try { hasOwnGroups = !!localStorage.getItem(COLS_KEY); } catch { /* ignore */ }
@@ -1264,13 +1263,6 @@ function setBrand(id) {
   applyBrand();
   render();
 }
-// The server reads this cookie to send the matching install manifest and iPhone icon
-// (see vercel.json), for browsers that pick those up before any script runs.
-function rememberBrandCookie() {
-  const b = storedBrand();
-  if (b) document.cookie = `brand=${b}; path=/; max-age=31536000; SameSite=Lax`;
-}
-rememberBrandCookie();
 let styleFirstRun = false;
 function openStylePicker(firstRun) {
   styleFirstRun = firstRun;

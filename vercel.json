@@ -40,29 +40,5 @@
         }
       ]
     }
-  ],
-  "rewrites": [
-    {
-      "source": "/manifest.webmanifest",
-      "has": [
-        {
-          "type": "cookie",
-          "key": "brand",
-          "value": "gym"
-        }
-      ],
-      "destination": "/manifest-gym.webmanifest"
-    },
-    {
-      "source": "/icons/apple-touch-icon.png",
-      "has": [
-        {
-          "type": "cookie",
-          "key": "brand",
-          "value": "gym"
-        }
-      ],
-      "destination": "/icons/gym-apple-touch-icon.png"
-    }
   ]
 }
