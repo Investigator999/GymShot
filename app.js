@@ -668,7 +668,8 @@ const GROUP_HINTS = {
   cooking: ['recipe', 'recipes', 'cook', 'cooking', 'bake', 'baking', 'dinner', 'lunch', 'breakfast', 'dessert', 'desserts',
     'meal', 'meals', 'mealprep', 'meal prep', 'pasta', 'chicken', 'beef', 'salad', 'soup', 'cake', 'cookies', 'bread',
     'sauce', 'oven', 'airfryer', 'air fryer', 'ingredients', 'kitchen', 'foodtok', 'easyrecipe', 'easy recipe', 'homemade',
-    'snack', 'snacks', '🍝', '🍕', '🍳', '🥗', '🍰', '🍪', '🥘', '🍲', '🍜', '🧁', '🥞', '🥙', 'وصفة', 'وصفات', 'طبخ', 'حلويات', 'مطبخ'],
+    'snack', 'snacks', '🍝', '🍕', '🍳', '🥗', '🍰', '🍪', '🥘', '🍲', '🍜', '🧁', '🥞', '🥙', 'وصفة', 'وصفات', 'طبخ', 'طبخة', 'حلويات', 'مطبخ',
+    'فطور', 'فطار', 'غداء', 'عشاء', 'أكلة', 'اكلة', 'سلطة', 'شوربة', 'كيكة', 'معجنات'],
   restaurants: ['restaurant', 'restaurants', 'cafe', 'café', 'cafes', 'coffee shop', 'brunch spot', 'foodie', 'menu',
     'rooftop', 'bistro', 'steakhouse', 'date night', 'date spot', 'hidden gem', 'places to eat', 'where to eat',
     'must try', 'must-try', 'reservation', 'food spot', 'food spots', '🍽', 'مطعم', 'مطاعم', 'كافيه', 'كافيهات'],
@@ -691,11 +692,63 @@ function hits(text, word) {
   if (/^[a-z0-9 '\-é]+$/.test(w)) return new RegExp(`(^|[^\\p{L}\\p{N}])#?${escapeRe(w)}($|[^\\p{L}\\p{N}])`, 'u').test(text);
   return text.includes(w);
 }
+// Other ways a caption says the same thing as a tag (English variants, Arabic, emojis), keyed by
+// the tag in lower case. Used to tick tags and to help pick the group.
+const TAG_WORDS = {
+  chest: ['pecs', 'bench press', 'صدر'],
+  back: ['lats', 'rows', 'pull-ups', 'pullups', 'ظهر'],
+  shoulders: ['shoulder', 'delts', 'shoulder press', 'أكتاف', 'اكتاف', 'كتف'],
+  arms: ['arm', 'biceps', 'triceps', 'ذراع', 'دراع', 'باي', 'تراي'],
+  legs: ['leg day', 'legday', 'squat', 'squats', 'lunges', 'أرجل', 'ارجل', 'رجلين'],
+  glutes: ['glute', 'booty', 'hip thrust', 'hip thrusts', 'أرداف', 'ارداف', 'مؤخرة', '🍑'],
+  core: ['abs', 'six pack', 'sixpack', 'plank', 'بطن', 'كور'],
+  abs: ['core', 'six pack', 'sixpack', 'plank', 'بطن', 'معدة'],
+  'full body': ['full-body', 'fullbody', 'total body', 'كامل الجسم', 'جسم كامل'],
+  cardio: ['hiit', 'running', 'كارديو', 'جري'],
+  mobility: ['stretch', 'stretching', 'flexibility', 'إطالة', 'اطالة', 'مرونة'],
+  stretching: ['stretch', 'flexibility', 'mobility', 'إطالة', 'اطالة', 'مرونة'],
+  pilates: ['بيلاتس'],
+  yoga: ['يوغا', 'يوجا', '🧘'],
+  breakfast: ['فطور', 'فطار', 'ريوق', 'ترويقة'],
+  lunch: ['غداء', 'غدا'],
+  dinner: ['عشاء', 'عشا'],
+  dessert: ['desserts', 'sweets', 'cookies', 'cake', 'brownies', 'حلويات', 'حلى', 'حلا', 'كيك', 'كيكة', 'كوكيز', 'شوكولا', 'شوكولاتة', '🍪', '🍰', '🧁', '🍫'],
+  healthy: ['diet', 'low calorie', 'high protein', 'صحي', 'صحية', 'دايت', 'رجيم'],
+  quick: ['easy', '5 min', '10 min', '15 min', '5-minute', '10-minute', 'سريع', 'سريعة', 'سهل', 'سهلة'],
+  pets: ['cat', 'cats', 'dog', 'dogs', 'puppy', 'kitten', 'قطة', 'قطط', 'كلب', '🐱', '🐶'],
+  kids: ['baby', 'toddler', 'أطفال', 'اطفال', 'طفل', '👶'],
+  pranks: ['prank', 'مقلب', 'مقالب'],
+  memes: ['meme', 'ميم'],
+  makeup: ['make-up', 'مكياج', 'ميك اب', '💄'],
+  skincare: ['skin care', 'serum', 'بشرة', 'سكين كير', '🧴'],
+  hair: ['hairstyle', 'hairstyles', 'شعر', 'تسريحة', '💇'],
+  nails: ['nail', 'nail art', 'manicure', 'أظافر', 'اظافر', 'مناكير', '💅'],
+  outfits: ['outfit', 'ootd', 'fashion', 'لبس', 'ملابس', 'ستايل', '👗'],
+  'date night': ['date', 'romantic', 'رومانسي', 'رومانسية'],
+  brunch: ['برانش', 'برنش'],
+  'cafés': ['cafe', 'café', 'cafes', 'coffee', 'كافيه', 'قهوة', '☕'],
+  'cheap eats': ['cheap', 'budget', 'رخيص', 'رخيصة'],
+  'must try': ['must-try', 'لازم تجربوا', 'لازم تجرب'],
+  hotels: ['hotel', 'resort', 'فندق', 'فنادق'],
+  places: ['أماكن', 'اماكن'],
+  tips: ['tip', 'نصائح', 'نصيحة'],
+  decor: ['ديكور'],
+  cleaning: ['clean', 'تنظيف'],
+  organizing: ['organize', 'organization', 'تنظيم', 'ترتيب'],
+  money: ['finance', 'investing', 'فلوس', 'مال'],
+  crafts: ['craft', 'diy', 'أشغال يدوية'],
+};
+const tagWords = (t) => [t, ...(TAG_WORDS[t.toLowerCase()] || [])];
+// Score = 2 per hit on the group's own words (hints, name, tags) + 1 per hit on tag synonyms.
+// Synonyms alone never pick a group: "5 min makeup" shouldn't land in Cooking via "Quick".
 function groupScore(col, text) {
-  const words = new Set([...(GROUP_HINTS[col.id] || []), col.name, ...col.tags].map((w) => w.toLowerCase()).filter((w) => w.length > 1));
-  let n = 0;
-  words.forEach((w) => { if (hits(text, w)) n++; });
-  return n;
+  const low = (arr) => arr.map((w) => w.toLowerCase()).filter((w) => w.length > 1);
+  const own = new Set(low([...(GROUP_HINTS[col.id] || []), col.name, ...col.tags]));
+  const extra = new Set(low(col.tags.flatMap((t) => TAG_WORDS[t.toLowerCase()] || [])).filter((w) => !own.has(w)));
+  let strong = 0, weak = 0;
+  own.forEach((w) => { if (hits(text, w)) strong++; });
+  extra.forEach((w) => { if (hits(text, w)) weak++; });
+  return strong ? strong * 2 + weak : 0;
 }
 // Pick the best-matching group for a caption and tick tags it mentions; leaves anything the
 // person already chose alone.
@@ -741,7 +794,7 @@ function suggestGroup(rawText) {
   if (!editorTagsTouched) {
     colById(editorCol).tags.forEach((t) => {
       const stem = t.toLowerCase().replace(/s$/, '');
-      if (hits(text, t) || (stem.length > 2 && hits(text, stem))) editorTags.add(t);
+      if (tagWords(t).some((w) => hits(text, w)) || (stem.length > 2 && hits(text, stem))) editorTags.add(t);
     });
   }
   renderEditorGroups();
