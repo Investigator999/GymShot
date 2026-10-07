@@ -345,3 +345,4 @@ dialog.intro { padding: 0; overflow: hidden; width: min(440px, calc(100vw - 24px
 .style-opt.babe .sn { font-family: var(--brand-font); color: #ff2e7e; }
 .style-opt:hover, .style-opt:focus-visible { border-color: var(--accent); }
 .style-dlg h2:focus { outline: none; }
+#shotHint .link-btn { padding: 0; color: var(--accent); font-size: inherit; font-weight: 700; text-decoration: underline; }

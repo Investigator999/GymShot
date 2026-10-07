@@ -532,29 +532,56 @@ function frameFromVideo(src, ms = 15000) {
   });
 }
 
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const isShortTikTok = (url) => /^https?:\/\/(vt|vm)\.tiktok\.com\/|^https?:\/\/(www\.)?tiktok\.com\/t\//i.test(url);
+
+// Ask for a link's oEmbed data; one retry when the service is busy or the network blips.
+// Returns { data } on success, { gone: true } when there's no public preview, null on failure.
+async function fetchMeta(endpoint) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt) await wait(1200);
+    try {
+      const res = await fetchWithTimeout(endpoint);
+      if (res.ok) return { data: await res.json() };
+      if (res.status === 404 || res.status === 400) return { gone: true };
+    } catch { /* retry */ }
+  }
+  return null;
+}
+
+// Cover image + title for a link. `ok` is false when something failed along the way and
+// it's worth trying again later; true when we got a cover or know there is none.
 async function fetchPreview(url) {
   const p = platformOf(url);
   if (!p || !OEMBED[p.id]) return null;
-  let data = {};
-  try {
-    const res = await fetchWithTimeout(OEMBED[p.id](url));
-    if (res.ok) data = await res.json();
-  } catch { /* fall through: YouTube can still get a thumbnail from its id */ }
+  let target = url;
+  if (p.id === 'tiktok' && isShortTikTok(url)) {
+    // TikTok's oEmbed rejects short app links; expand them to the full video address first.
+    const ex = await fetchMeta(`api/expand?url=${encodeURIComponent(url)}`);
+    if (ex?.data?.url) target = ex.data.url;
+    else if (!ex) return { ok: false, title: '', image: null, text: '' };
+  }
+  const meta = await fetchMeta(OEMBED[p.id](target));
+  const data = meta?.data || {};
   const yt = p.id === 'youtube' ? youtubeId(url) : null;
   const thumb = data.thumbnail_url || (yt ? `https://i.ytimg.com/vi/${yt}/hqdefault.jpg` : null);
   let image = null;
   if (thumb) {
-    try {
-      // TikTok's CDN rejects hotlinked requests that carry a Referer.
-      const r = await fetchWithTimeout(thumb, { referrerPolicy: 'no-referrer' });
-      if (r.ok) image = await compressImage(await r.blob());
-    } catch { /* keep the title even if the image fails */ }
+    for (let attempt = 0; attempt < 2 && !image; attempt++) {
+      if (attempt) await wait(800);
+      try {
+        // TikTok's CDN rejects hotlinked requests that carry a Referer.
+        const r = await fetchWithTimeout(thumb, { referrerPolicy: 'no-referrer' });
+        if (r.ok) image = await compressImage(await r.blob());
+      } catch { /* retry once, then keep the title */ }
+    }
   } else if (data.video_url) {
     image = await frameFromVideo(data.video_url);
   }
   const title = cleanCaption(data.title) || (data.author_name ? `@${data.author_name} on ${p.name}` : '');
   const text = [data.title, data.author_name].filter(Boolean).join(' ');
-  return image || title ? { title, image, text } : null;
+  const ok = !!image || !!meta?.gone;
+  return { ok, title, image, text };
 }
 
 // The preview for the move currently open in the editor (it keeps going if Save is tapped early).
@@ -574,22 +601,8 @@ function openEditor(it, prefill = {}, sharedText = '') {
   draftShot = undefined;
   showShotPreview(it ? shots.get(it.id)?.url : null);
   pendingPreview = null;
-  if (!it && canPreview(data.url)) {
-    const req = { url: data.url, promise: fetchPreview(data.url) };
-    pendingPreview = req;
-    $('#shotPreview').classList.add('loading');
-    $('#shotPreview').replaceChildren(el('span', {}, '⏳'));
-    req.promise.then((prev) => {
-      if (pendingPreview !== req) return; // editor moved on; the save handler takes it from here
-      $('#shotPreview').classList.remove('loading');
-      if (draftShot === undefined && !prev?.image) showShotPreview(null);
-      if (!prev) return;
-      if (prev.image && draftShot === undefined) useShotFile(prev.image);
-      const titleInput = f.elements.title;
-      if (prev.title && titleInput.value.trim() === defaultTitle(data.url)) titleInput.value = prev.title;
-      suggestGroup(`${sharedText} ${prev.text || ''}`);
-    });
-  }
+  setShotHint();
+  if (!it && canPreview(data.url)) runEditorPreview(data.url, sharedText);
   editorCol = it ? itemCol(it) : view.col;
   editorTags = new Set(data.tags || []);
   editorColTouched = !!it;
@@ -600,6 +613,33 @@ function openEditor(it, prefill = {}, sharedText = '') {
   if (!it) suggestGroup(sharedText);
   $('#editDlg').showModal();
   if (!it) setTimeout(() => f.elements.title.select(), 50);
+}
+
+// Under the screenshot box: the normal tip, or a "Try again" when the cover didn't load.
+function setShotHint(retry) {
+  const hint = $('#shotHint');
+  if (!retry) { hint.textContent = 'Pick it from your Photos.'; return; }
+  hint.replaceChildren('Couldn’t load the cover. ', el('button', { type: 'button', class: 'link-btn', onclick: retry }, 'Try again'));
+}
+
+function runEditorPreview(url, sharedText) {
+  const f = $('#editForm');
+  const req = { url, promise: fetchPreview(url) };
+  pendingPreview = req;
+  setShotHint();
+  $('#shotPreview').classList.add('loading');
+  $('#shotPreview').replaceChildren(el('span', {}, '⏳'));
+  req.promise.then((prev) => {
+    if (pendingPreview !== req) return; // editor moved on; the save handler takes it from here
+    $('#shotPreview').classList.remove('loading');
+    if (draftShot === undefined && !prev?.image) showShotPreview(null);
+    if (prev && !prev.ok && draftShot === undefined) setShotHint(() => runEditorPreview(url, sharedText));
+    if (!prev) return;
+    if (prev.image && draftShot === undefined) useShotFile(prev.image);
+    const titleInput = f.elements.title;
+    if (prev.title && titleInput.value.trim() === defaultTitle(url)) titleInput.value = prev.title;
+    suggestGroup(`${sharedText} ${prev.text || ''}`);
+  });
 }
 
 const NOTE_HINTS = {
@@ -751,6 +791,7 @@ async function useShotFile(file) {
     const blob = await compressImage(file);
     if (!blob) throw new Error('encode failed');
     draftShot = blob;
+    setShotHint();
     if (showShotPreview.url) URL.revokeObjectURL(showShotPreview.url);
     showShotPreview.url = URL.createObjectURL(blob);
     showShotPreview(showShotPreview.url);
@@ -812,20 +853,21 @@ $('#editForm').addEventListener('submit', (e) => {
     }
     const it = { id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()), createdAt: Date.now(), ...fields };
     if (it.tried) it.triedAt = Date.now();
-    if (draftShot) setShot(it.id, draftShot);
-    else if (draftShot === undefined && pendingPreview && pendingPreview.url === url) {
+    if (draftShot) { setShot(it.id, draftShot); it.coverDone = true; }
+    else if (draftShot === null) it.coverDone = true; // they removed the cover on purpose
+    else if (pendingPreview && pendingPreview.url === url) {
       // Saved before the preview arrived: attach it when it lands.
       const genericTitle = it.title === defaultTitle(url);
       pendingPreview.promise.then((prev) => {
         if (!prev || !items.includes(it)) return;
         if (prev.image && !shots.has(it.id)) setShot(it.id, prev.image);
         if (genericTitle && prev.title && it.title === defaultTitle(url)) it.title = prev.title;
-        it.previewTried = true;
+        // A failed lookup is retried the next few times the app opens (backfillPreviews).
+        if (prev.ok) it.coverDone = true; else it.coverFails = (it.coverFails || 0) + 1;
         persist();
         render();
       });
     }
-    if (pendingPreview) it.previewTried = true;
     pendingPreview = null;
     items.push(it);
     persist();
@@ -1244,12 +1286,13 @@ loadShots().then(() => {
   backfillPreviews();
 });
 
-// Fetch thumbnails for TikTok / YouTube moves saved without a picture (once per move).
+// Fetch covers for saves that don't have one yet. A failed lookup is retried on the next
+// app opens, up to 3 times; private or removed posts are marked done and left alone.
 async function backfillPreviews() {
-  const todo = items.filter((it) => canPreview(it.url) && !shots.has(it.id) && !it.previewTried).slice(0, 20);
+  const todo = items.filter((it) => canPreview(it.url) && !shots.has(it.id) && !it.coverDone && (it.coverFails || 0) < 3).slice(0, 20);
   for (const it of todo) {
     const prev = await fetchPreview(it.url);
-    it.previewTried = true;
+    if (prev?.ok) it.coverDone = true; else it.coverFails = (it.coverFails || 0) + 1;
     if (prev?.image && !shots.has(it.id)) setShot(it.id, prev.image);
     if (prev?.title && it.title === defaultTitle(it.url)) it.title = prev.title;
     persist();
