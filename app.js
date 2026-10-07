@@ -582,7 +582,8 @@ async function fetchPreview(url) {
   const title = cleanCaption(data.title) || (data.author_name ? `@${data.author_name} on ${p.name}` : '');
   const text = [data.title, data.author_name].filter(Boolean).join(' ');
   const ok = !!image || !!meta?.gone;
-  return { ok, title, image, text };
+  // gone: the platform shares no preview (private, age-limited or removed post).
+  return { ok, gone: !!meta?.gone && !image, title, image, text };
 }
 
 // The preview for the move currently open in the editor (it keeps going if Save is tapped early).
@@ -617,8 +618,9 @@ function openEditor(it, prefill = {}, sharedText = '') {
 }
 
 // Under the screenshot box: the normal tip, or a "Try again" when the cover didn't load.
-function setShotHint(retry) {
+function setShotHint(retry, gone) {
   const hint = $('#shotHint');
+  if (gone) { hint.textContent = 'This post is private or limited by its owner, so there’s no preview. Take a screenshot in the app and add it here.'; return; }
   if (!retry) { hint.textContent = 'Pick it from your Photos.'; return; }
   hint.replaceChildren('Couldn’t load the cover. ', el('button', { type: 'button', class: 'link-btn', onclick: retry }, 'Try again'));
 }
@@ -635,6 +637,7 @@ function runEditorPreview(url, sharedText) {
     $('#shotPreview').classList.remove('loading');
     if (draftShot === undefined && !prev?.image) showShotPreview(null);
     if (prev && !prev.ok && draftShot === undefined) setShotHint(() => runEditorPreview(url, sharedText));
+    if (prev?.gone && draftShot === undefined) setShotHint(null, true);
     if (!prev) return;
     if (prev.image && draftShot === undefined) useShotFile(prev.image);
     const titleInput = f.elements.title;
