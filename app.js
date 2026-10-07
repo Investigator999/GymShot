@@ -50,6 +50,7 @@ function initialBrand() {
   return storedBrand() || (/laterbabe/.test(location.hostname) ? 'babe' : null);
 }
 let brandId = initialBrand() || 'babe';
+const loadedBrand = brandId; // the look the page's name/icon links were set up with
 const brand = () => BRANDS[brandId];
 const colTemplates = () => {
   const extra = [FUNNY, BEAUTY, RESTAURANTS, COOKING, BRANDS.gym.cols[0],
@@ -1246,6 +1247,7 @@ function applyBrand() {
 function setBrand(id) {
   brandId = id;
   try { localStorage.setItem(BRAND_KEY, id); } catch { /* ignore */ }
+  rememberBrandCookie();
   // Someone who hasn't set anything up yet gets the starter groups of the look they picked.
   let hasOwnGroups = false;
   try { hasOwnGroups = !!localStorage.getItem(COLS_KEY); } catch { /* ignore */ }
@@ -1256,9 +1258,19 @@ function setBrand(id) {
     // Keep the groups they already use; otherwise the new look's defaults would replace them on reload.
     persistCols();
   }
+  // Phones read the app name and icon when the page loads, so reload once to hand them the
+  // new look before anyone taps "Add to Home Screen" or "Install app".
+  if (id !== loadedBrand) { location.reload(); return; }
   applyBrand();
   render();
 }
+// The server reads this cookie to send the matching install manifest and iPhone icon
+// (see vercel.json), for browsers that pick those up before any script runs.
+function rememberBrandCookie() {
+  const b = storedBrand();
+  if (b) document.cookie = `brand=${b}; path=/; max-age=31536000; SameSite=Lax`;
+}
+rememberBrandCookie();
 let styleFirstRun = false;
 function openStylePicker(firstRun) {
   styleFirstRun = firstRun;
