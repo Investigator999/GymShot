@@ -3,30 +3,28 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Later, Babe</title>
   <meta name="description" content="Save reels and videos from Instagram, TikTok, YouTube and Facebook in one place, to try later.">
-  <meta name="theme-color" id="themeLight" content="#fff4ef" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" id="themeDark" content="#1d0b14" media="(prefers-color-scheme: dark)">
-  <link rel="manifest" id="manifestLink" href="manifest.webmanifest">
-  <link rel="icon" id="iconLink" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" id="touchIconLink" href="icons/apple-touch-icon.png">
-  <meta name="apple-mobile-web-app-title" id="appTitle" content="Later, Babe">
   <script>
-    // Apply the saved look right away, before the browser reads the name and icon for
-    // "Add to Home Screen" / "Install app". The links above default to Later, Babe.
+    // Write the look-specific head tags (name, install manifest, icons, colors) here instead of
+    // as plain HTML: browsers start fetching a <link rel="manifest"> as soon as they see it in
+    // the page source, so a hard-coded Later, Babe manifest gave GymShot users the wrong app
+    // name on "Add to Home Screen". app.js keeps these in sync after that.
     (function () {
       var gym = false;
       try { gym = localStorage.getItem('gymshot.brand') === 'gym'; } catch (e) {}
-      if (!gym) return;
-      var set = function (id, attr, v) { var n = document.getElementById(id); if (n) n.setAttribute(attr, v); };
-      document.documentElement.dataset.brand = 'gym';
-      document.title = 'GymShot';
-      set('appTitle', 'content', 'GymShot');
-      set('manifestLink', 'href', 'manifest-gym.webmanifest');
-      set('iconLink', 'href', 'icons/gym-icon.svg');
-      set('touchIconLink', 'href', 'icons/gym-apple-touch-icon.png');
-      set('themeLight', 'content', '#f5f6f8');
-      set('themeDark', 'content', '#0f1115');
+      var b = gym
+        ? { brand: 'gym', name: 'GymShot', manifest: 'manifest-gym.webmanifest', icon: 'icons/gym-icon.svg', touch: 'icons/gym-apple-touch-icon.png', light: '#f5f6f8', dark: '#0f1115' }
+        : { brand: 'babe', name: 'Later, Babe', manifest: 'manifest.webmanifest', icon: 'icons/icon.svg', touch: 'icons/apple-touch-icon.png', light: '#fff4ef', dark: '#1d0b14' };
+      document.documentElement.dataset.brand = b.brand;
+      document.write(
+        '<title>' + b.name + '</title>' +
+        '<meta name="apple-mobile-web-app-title" id="appTitle" content="' + b.name + '">' +
+        '<meta name="application-name" id="appName" content="' + b.name + '">' +
+        '<meta name="theme-color" id="themeLight" content="' + b.light + '" media="(prefers-color-scheme: light)">' +
+        '<meta name="theme-color" id="themeDark" content="' + b.dark + '" media="(prefers-color-scheme: dark)">' +
+        '<link rel="manifest" id="manifestLink" href="' + b.manifest + '">' +
+        '<link rel="icon" id="iconLink" href="' + b.icon + '" type="image/svg+xml">' +
+        '<link rel="apple-touch-icon" id="touchIconLink" href="' + b.touch + '">');
     })();
   </script>
   <meta name="apple-mobile-web-app-capable" content="yes">
