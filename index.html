@@ -12,8 +12,22 @@
   <link rel="apple-touch-icon" id="touchIconLink" href="icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-title" id="appTitle" content="Later, Babe">
   <script>
-    // Apply the saved look before the first paint (GymShot or Later, Babe); app.js does the rest.
-    try { if (localStorage.getItem('gymshot.brand') === 'gym') document.documentElement.dataset.brand = 'gym'; } catch (e) {}
+    // Apply the saved look right away, before the browser reads the name and icon for
+    // "Add to Home Screen" / "Install app". The links above default to Later, Babe.
+    (function () {
+      var gym = false;
+      try { gym = localStorage.getItem('gymshot.brand') === 'gym'; } catch (e) {}
+      if (!gym) return;
+      var set = function (id, attr, v) { var n = document.getElementById(id); if (n) n.setAttribute(attr, v); };
+      document.documentElement.dataset.brand = 'gym';
+      document.title = 'GymShot';
+      set('appTitle', 'content', 'GymShot');
+      set('manifestLink', 'href', 'manifest-gym.webmanifest');
+      set('iconLink', 'href', 'icons/gym-icon.svg');
+      set('touchIconLink', 'href', 'icons/gym-apple-touch-icon.png');
+      set('themeLight', 'content', '#f5f6f8');
+      set('themeDark', 'content', '#0f1115');
+    })();
   </script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">

@@ -1,13 +1,68 @@
 {
   "headers": [
-    { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
-    { "source": "/(index.html)?", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/(index.html)?",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    },
     {
       "source": "/manifest(-gym)?.webmanifest",
       "headers": [
-        { "key": "Content-Type", "value": "application/manifest+json" },
-        { "key": "Cache-Control", "value": "no-cache" }
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
       ]
+    },
+    {
+      "source": "/icons/(gym-)?apple-touch-icon.png",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/manifest.webmanifest",
+      "has": [
+        {
+          "type": "cookie",
+          "key": "brand",
+          "value": "gym"
+        }
+      ],
+      "destination": "/manifest-gym.webmanifest"
+    },
+    {
+      "source": "/icons/apple-touch-icon.png",
+      "has": [
+        {
+          "type": "cookie",
+          "key": "brand",
+          "value": "gym"
+        }
+      ],
+      "destination": "/icons/gym-apple-touch-icon.png"
     }
   ]
 }
