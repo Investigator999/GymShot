@@ -46,3 +46,10 @@ npx http-server -c-1 .
 
 ## Credits
 Logo font: [Shrikhand](https://fonts.google.com/specimen/Shrikhand) by Jonny Pinhorn, SIL Open Font License 1.1 (self-hosted in `fonts/`).
+
+## Android app (Trusted Web Activity)
+The Play Store / APK version wraps gymshot.fit in a Trusted Web Activity built with
+[Bubblewrap](https://github.com/GoogleChromeLabs/bubblewrap) (package `fit.gymshot.app`). It opens full screen
+and appears in Android's Share menu. `.well-known/assetlinks.json` proves the app and site belong together;
+when publishing on Google Play, add the **App signing key** SHA-256 from Play Console → App integrity to that file.
+Keep the signing keystore safe; it is needed for every update.
