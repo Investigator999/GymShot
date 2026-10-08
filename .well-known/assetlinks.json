@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "fit.gymshot.app",
+      "sha256_cert_fingerprints": [
+        "F7:5E:F6:0E:3B:14:D1:F2:D1:90:73:6C:86:08:5E:6F:5F:DF:2E:26:7C:7A:65:A0:24:A5:88:2B:11:2C:AC:8C"
+      ]
+    }
+  }
+]
