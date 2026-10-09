@@ -17,7 +17,8 @@ The app comes in two looks people pick on first launch (and can switch in ⋯ �
 - **Share** any saved video (phone share sheet, or copies the link)
 - 🎲 Random pick of something you haven't tried yet — handy at the gym
 - Duplicate detection (the same reel shared twice is recognised; tracking params are ignored)
-- Works offline; export / import a JSON backup (includes screenshots)
+- Works offline; export / import a JSON backup (includes screenshots); a reminder suggests a backup every 10 new saves
+- Privacy policy at `/privacy/`; anonymous visit counts via Vercel Web Analytics (enable it in the Vercel project → Analytics)
 
 ## Deploy (GitHub Pages)
 1. Merge to `main`.
