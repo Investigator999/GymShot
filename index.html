@@ -152,6 +152,7 @@
       <button type="button" id="exportBtn" class="menu-item">⬇️ Export backup (.json)</button>
       <button type="button" id="importBtn" class="menu-item">⬆️ Import backup</button>
       <input type="file" id="importFile" accept="application/json,.json" hidden>
+      <a class="menu-item" href="privacy/" target="_blank" rel="noopener">🔒 Privacy policy</a>
       <div class="dlg-actions"><button value="close" class="ghost">Close</button></div>
     </form>
   </dialog>
@@ -255,5 +256,7 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="app.js"></script>
+  <!-- Vercel Web Analytics: anonymous page-view counts, no cookies (see privacy/) -->
+  <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

@@ -930,8 +930,25 @@ $('#editForm').addEventListener('submit', (e) => {
     persist();
     revealItem(it);
     toast(`Saved to ${colById(it.col).name} ${colById(it.col).emoji}`);
+    setTimeout(maybeRemindBackup, 2600);
   }
 });
+
+// ---------- backup reminder ----------
+// Saves live only on this phone, so every 10 new saves since the last backup (or reminder)
+// suggest exporting one. Clearing browser data or changing phones would otherwise lose them.
+const BACKUP_KEY = 'gymshot.backupBase';
+function backupBase() {
+  try { return Number(localStorage.getItem(BACKUP_KEY)) || 0; } catch { return 0; }
+}
+function setBackupBase(n) {
+  try { localStorage.setItem(BACKUP_KEY, String(n)); } catch { /* ignore */ }
+}
+function maybeRemindBackup() {
+  if (items.length - backupBase() < 10 || document.querySelector('dialog[open]')) return;
+  setBackupBase(items.length);
+  toast(`${items.length} saves live only on this phone. Back them up?`, 'Back up', () => $('#exportBtn').click());
+}
 
 function startAdd(rawUrl, title = '', text = '') {
   const url = extractUrl(rawUrl) || extractUrl(text) || extractUrl(title);
@@ -969,7 +986,7 @@ function toast(msg, actionLabel, action) {
   }
   t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), actionLabel ? 5000 : 2200);
+  toastTimer = setTimeout(() => t.classList.remove('show'), actionLabel ? 5000 : Math.max(2200, msg.length * 45));
 }
 
 // ---------- UI wiring ----------
@@ -1135,7 +1152,8 @@ $('#exportBtn').addEventListener('click', async () => {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  toast(`Exported ${items.length} video${items.length === 1 ? '' : 's'}`);
+  setBackupBase(items.length);
+  toast(`Backup saved: ${items.length} video${items.length === 1 ? '' : 's'}. Keep the file somewhere safe, like Google Drive.`);
 });
 
 $('#importBtn').addEventListener('click', () => $('#importFile').click());
