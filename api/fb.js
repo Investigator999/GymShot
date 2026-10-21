@@ -90,7 +90,8 @@ module.exports = async (req, res) => {
       res.status(404).json({ error: 'No public preview for this video' });
       return;
     }
-    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=21600');
+    // The video file link expires within hours; keep answers short so the app never gets a dead one.
+    res.setHeader('Cache-Control', 'public, s-maxage=600');
     res.status(200).json({ provider_name: 'Facebook', ...data });
   } catch {
     res.status(502).json({ error: 'Could not reach Facebook' });

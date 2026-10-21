@@ -461,7 +461,9 @@ function revealItem(it) {
 // Both publish a public oEmbed endpoint (CORS-enabled) with the video's title and cover image,
 // so those links get a thumbnail without a screenshot. Instagram requires a paid token, so it can't.
 const OEMBED = {
-  tiktok: (u) => `https://www.tiktok.com/oembed?url=${encodeURIComponent(u)}`,
+  // TikTok's oEmbed no longer returns the cover or caption, so api/tt.js reads its public
+  // embed page instead (it also expands short vt.tiktok.com links).
+  tiktok: (u) => `api/tt?url=${encodeURIComponent(u)}`,
   // Instagram dropped thumbnails from its oEmbed API, so our own helper (api/ig.js on Vercel)
   // reads them from Instagram's public embed page and answers in the same shape.
   instagram: (u) => `api/ig?url=${encodeURIComponent(u)}`,
@@ -534,7 +536,6 @@ function frameFromVideo(src, ms = 15000) {
 }
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const isShortTikTok = (url) => /^https?:\/\/(vt|vm)\.tiktok\.com\/|^https?:\/\/(www\.)?tiktok\.com\/t\//i.test(url);
 
 // Ask for a link's oEmbed data; one retry when the service is busy or the network blips.
 // Returns { data } on success, { gone: true } when there's no public preview, null on failure.
@@ -555,14 +556,7 @@ async function fetchMeta(endpoint) {
 async function fetchPreview(url) {
   const p = platformOf(url);
   if (!p || !OEMBED[p.id]) return null;
-  let target = url;
-  if (p.id === 'tiktok' && isShortTikTok(url)) {
-    // TikTok's oEmbed rejects short app links; expand them to the full video address first.
-    const ex = await fetchMeta(`api/expand?url=${encodeURIComponent(url)}`);
-    if (ex?.data?.url) target = ex.data.url;
-    else if (!ex) return { ok: false, title: '', image: null, text: '' };
-  }
-  const meta = await fetchMeta(OEMBED[p.id](target));
+  const meta = await fetchMeta(OEMBED[p.id](url));
   const data = meta?.data || {};
   const yt = p.id === 'youtube' ? youtubeId(url) : null;
   const thumb = data.thumbnail_url || (yt ? `https://i.ytimg.com/vi/${yt}/hqdefault.jpg` : null);
@@ -677,7 +671,7 @@ const GROUP_HINTS = {
     'rooftop', 'bistro', 'steakhouse', 'date night', 'date spot', 'hidden gem', 'places to eat', 'where to eat',
     'must try', 'must-try', 'reservation', 'food spot', 'food spots', '🍽', 'مطعم', 'مطاعم', 'كافيه', 'كافيهات'],
   funny: ['funny', 'lol', 'lmao', 'comedy', 'prank', 'pranks', 'meme', 'memes', 'joke', 'jokes', 'hilarious', 'fail',
-    'fails', 'humor', 'humour', '😂', '🤣', '😆', '😹', 'ضحك', 'مضحك', 'هههه', 'كوميدي'],
+    'fails', 'humor', 'humour', 'petsoftiktok', 'pets', 'dog', 'dogs', 'cat', 'cats', 'puppy', 'kitten', 'dogsoftiktok', 'catsoftiktok', 'funnyvideos', 'comedy', '😂', '🤣', '😆', '😹', 'ضحك', 'مضحك', 'هههه', 'كوميدي'],
   beauty: ['makeup', 'make-up', 'skincare', 'skin care', 'hair', 'hairstyle', 'hairstyles', 'nails', 'nail art', 'nailart',
     'manicure', 'lipstick', 'lashes', 'mascara', 'foundation', 'contour', 'serum', 'outfit', 'outfits', 'fashion', 'grwm',
     'beauty', 'glow up', 'glowup', '💄', '💅', '👗', '💇', 'مكياج', 'بشرة', 'سكين كير', 'اظافر', 'أظافر'],
