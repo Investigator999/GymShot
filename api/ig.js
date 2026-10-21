@@ -111,7 +111,8 @@ module.exports = async (req, res) => {
     res.status(502).json({ error: 'Instagram did not answer, try again' });
     return;
   }
-  res.setHeader('Cache-Control', 'public, s-maxage=21600, stale-while-revalidate=86400');
+  // Cover links are signed and expire; don't serve old answers for long.
+  res.setHeader('Cache-Control', 'public, s-maxage=10800, stale-while-revalidate=3600');
   res.status(200).json({ provider_name: 'Instagram', ...out.data });
 };
 
